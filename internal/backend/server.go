@@ -2,14 +2,14 @@ package backend
 
 import (
 	"net/http"
-
+	"github.com/philopaterwaheed/passGO/internal/backend/config"
 	"github.com/gin-gonic/gin"
 )
 
 // Run starts the Gin HTTP server
 func Run() {
 	router := SetupRouter()
-	router.Run(":8080")
+	router.Run(":" + config.Port)
 }
 
 // SetupRouter configures and returns the Gin router

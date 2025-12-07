@@ -14,6 +14,9 @@ var (
 
 	JWTSecret     string
 	JWTExpiration int
+
+	MongoURI      string
+	MongoDatabase string
 )
 
 func init() {
@@ -26,6 +29,8 @@ func init() {
 	Environment = getEnv("ENVIRONMENT", "development")
 	JWTSecret = getEnv("JWT_SECRET", "")
 	JWTExpiration = getEnvAsInt("JWT_EXPIRATION_HOURS", 24)
+	MongoURI = getEnv("MONGO_URI", "mongodb://localhost:27017")
+	MongoDatabase = getEnv("MONGO_DATABASE", "passgo")
 }
 
 func getEnv(key, defaultValue string) string {

@@ -1,52 +1,87 @@
 package frontend
 
 import (
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/widget"
+	"image/color"
+	"log"
+	"os"
+
+	"gioui.org/app"
+	"gioui.org/font/gofont"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/text"
+	"gioui.org/unit"
+	"gioui.org/widget"
+	"gioui.org/widget/material"
 )
 
-// Run starts the Fyne desktop application
+// Run starts the Gio desktop/web application
 func Run() {
-	myApp := app.New()
-	myWindow := myApp.NewWindow("PassGO - Password Manager")
-
-	// Create the main UI
-	content := createMainUI()
-	myWindow.SetContent(content)
-
-	// Set window size
-	myWindow.Resize(fyne.NewSize(800, 600))
-
-	// Show and run
-	myWindow.ShowAndRun()
+	go func() {
+		w := new(app.Window)
+		w.Option(
+			app.Title("PassGO - Password Manager"),
+			app.Size(unit.Dp(800), unit.Dp(600)),
+		)
+		if err := loop(w); err != nil {
+			log.Fatal(err)
+		}
+		os.Exit(0)
+	}()
+	app.Main()
 }
 
-// createMainUI creates the main user interface
-func createMainUI() fyne.CanvasObject {
-	// Welcome label
-	welcomeLabel := widget.NewLabel("Welcome to PassGO")
-	welcomeLabel.TextStyle = fyne.TextStyle{Bold: true}
+func loop(w *app.Window) error {
+	th := material.NewTheme()
+	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
+	var ops op.Ops
 
-	// Description
-	descLabel := widget.NewLabel("Your secure password manager")
+	var loginBtn widget.Clickable
+	var registerBtn widget.Clickable
 
-	// Placeholder buttons
-	loginBtn := widget.NewButton("Login", func() {
-		// TODO: Implement login functionality
-	})
+	for {
+		switch e := w.Event().(type) {
+		case app.DestroyEvent:
+			return e.Err
+		case app.FrameEvent:
+			gtx := app.NewContext(&ops, e)
 
-	registerBtn := widget.NewButton("Register", func() {
-		// TODO: Implement register functionality
-	})
+			layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{
+					Axis:      layout.Vertical,
+					Spacing:   layout.SpaceBetween,
+					Alignment: layout.Middle,
+				}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						l := material.H3(th, "Welcome to PassGO")
+						l.Alignment = text.Middle
+						l.Color = color.NRGBA{R: 0, G: 0, B: 0, A: 255}
+						return l.Layout(gtx)
+					}),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						l := material.Body1(th, "Your secure password manager")
+						l.Alignment = text.Middle
+						l.Color = color.NRGBA{R: 0, G: 0, B: 0, A: 255}
+						return l.Layout(gtx)
+					}),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.Flex{
+							Axis:    layout.Horizontal,
+							Spacing: layout.SpaceEvenly,
+						}.Layout(gtx,
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return material.Button(th, &loginBtn, "Login").Layout(gtx)
+							}),
+							layout.Rigid(layout.Spacer{Width: unit.Dp(10)}.Layout),
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return material.Button(th, &registerBtn, "Register").Layout(gtx)
+							}),
+						)
+					}),
+				)
+			})
 
-	// Layout
-	content := container.NewVBox(
-		welcomeLabel,
-		descLabel,
-		container.NewHBox(loginBtn, registerBtn),
-	)
-
-	return container.NewCenter(content)
+			e.Frame(gtx.Ops)
+		}
+	}
 }

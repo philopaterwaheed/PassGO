@@ -6,7 +6,7 @@ An online password manager fully written in Go.
 ```
 passGO/
 ├── cmd/
-│   ├── frontend/    # Fyne desktop application entry point
+│   ├── frontend/    # Gio desktop/web application entry point
 │   │   └── main.go
 │   └── backend/     # Gin HTTP server entry point
 │       └── main.go
@@ -23,7 +23,7 @@ passGO/
 
 ## Technologies
 
-- **Frontend**: [Fyne](https://fyne.io/) - Cross-platform GUI toolkit for Go
+- **Frontend**: [Gio](https://gioui.org/) - Immediate mode GUI in Go
 - **Backend**: [Gin](https://gin-gonic.com/) - High-performance HTTP web framework
 
 ## Getting Started

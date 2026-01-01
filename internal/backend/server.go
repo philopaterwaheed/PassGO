@@ -1,12 +1,14 @@
 package backend
 
 import (
+	"context"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/philopaterwaheed/passGO/internal/backend/config"
 	"github.com/philopaterwaheed/passGO/internal/backend/database"
+	"github.com/philopaterwaheed/passGO/internal/backend/handlers"
 )
 
 // Run starts the Gin HTTP server
@@ -16,6 +18,15 @@ func Run() {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
 	defer database.Disconnect()
+
+	// Initialize database indexes
+	ctx := context.Background()
+	userRepo := database.NewUserRepository()
+	if err := userRepo.CreateIndexes(ctx); err != nil {
+		log.Printf("Warning: Failed to create indexes: %v", err)
+	} else {
+		log.Println("Database indexes created successfully")
+	}
 
 	router := SetupRouter()
 	router.Run(":" + config.Port)
@@ -50,6 +61,19 @@ func SetupRouter() *gin.Engine {
 				"message": "pong",
 			})
 		})
+
+		// User routes
+		userHandler := handlers.NewUserHandler()
+		users := api.Group("/users")
+		{
+			users.POST("", userHandler.CreateUser)
+			users.GET("", userHandler.GetAllUsers)
+			users.GET("/:id", userHandler.GetUser)
+			users.PUT("/:id", userHandler.UpdateUser)
+			users.DELETE("/:id", userHandler.DeleteUser)
+			users.GET("/email/:email", userHandler.GetUserByEmail)
+			users.GET("/username/:username", userHandler.GetUserByUsername)
+		}
 	}
 
 	return router

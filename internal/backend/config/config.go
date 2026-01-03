@@ -17,6 +17,9 @@ var (
 
 	MongoURI      string
 	MongoDatabase string
+
+	SupabaseURL    string
+	SupabaseAPIKey string
 )
 
 func init() {
@@ -31,6 +34,8 @@ func init() {
 	JWTExpiration = getEnvAsInt("JWT_EXPIRATION_HOURS", 24)
 	MongoURI = getEnv("MONGO_URI", "mongodb://localhost:27017")
 	MongoDatabase = getEnv("MONGO_DATABASE", "passgo")
+	SupabaseURL = getEnv("SUPABASE_URL", "")
+	SupabaseAPIKey = getEnv("SUPABASE_API_KEY", "")
 }
 
 func getEnv(key, defaultValue string) string {

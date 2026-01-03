@@ -102,6 +102,46 @@ func (r *UserRepository) GetUserByUsername(ctx context.Context, username string)
 	return &user, nil
 }
 
+// GetUserBySupabaseUID retrieves a user by their Supabase UID
+func (r *UserRepository) GetUserBySupabaseUID(ctx context.Context, supabaseUID string) (*models.User, error) {
+	var user models.User
+	err := r.collection.FindOne(ctx, bson.M{"supabase_uid": supabaseUID}).Decode(&user)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+// UpdateEmailVerified updates the email verification status
+func (r *UserRepository) UpdateEmailVerified(ctx context.Context, id string, verified bool) error {
+	objectID, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"email_verified": verified,
+			"updated_at":     time.Now(),
+		},
+	}
+
+	result, err := r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, update)
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
 // GetAllUsers retrieves all users with pagination
 func (r *UserRepository) GetAllUsers(ctx context.Context, page, limit int64) ([]*models.User, error) {
 	skip := (page - 1) * limit
@@ -142,12 +182,6 @@ func (r *UserRepository) UpdateUser(ctx context.Context, id string, update *mode
 
 	if update.Email != "" {
 		setFields["email"] = update.Email
-	}
-	if update.Username != "" {
-		setFields["username"] = update.Username
-	}
-	if update.FullName != "" {
-		setFields["full_name"] = update.FullName
 	}
 	if update.IsActive != nil {
 		setFields["is_active"] = *update.IsActive
@@ -214,6 +248,10 @@ func (r *UserRepository) CreateIndexes(ctx context.Context) error {
 		{
 			Keys:    bson.D{{Key: "username", Value: 1}},
 			Options: options.Index().SetUnique(true),
+		},
+		{
+			Keys:    bson.D{{Key: "supabase_uid", Value: 1}},
+			Options: options.Index().SetUnique(true).SetSparse(true),
 		},
 	}
 

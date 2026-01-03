@@ -9,6 +9,7 @@ import (
 	"github.com/philopaterwaheed/passGO/internal/backend/config"
 	"github.com/philopaterwaheed/passGO/internal/backend/database"
 	"github.com/philopaterwaheed/passGO/internal/backend/handlers"
+	"github.com/philopaterwaheed/passGO/internal/backend/middleware"
 )
 
 // Run starts the Gin HTTP server
@@ -61,6 +62,25 @@ func SetupRouter() *gin.Engine {
 				"message": "pong",
 			})
 		})
+
+		// Auth routes (public)
+		authHandler, err := handlers.NewAuthHandler()
+		if err != nil {
+			log.Printf("Warning: Auth handler not initialized (Supabase not configured): %v", err)
+		} else {
+			auth := api.Group("/auth")
+			{
+				auth.POST("/signup", authHandler.Signup)
+				auth.POST("/login", authHandler.Login)
+				auth.POST("/verify-email", authHandler.VerifyEmail)
+				auth.POST("/resend-verification", authHandler.ResendVerification)
+				auth.POST("/forgot-password", authHandler.ForgotPassword)
+				auth.POST("/refresh", authHandler.RefreshToken)
+
+				// Protected auth routes
+				auth.GET("/me", middleware.AuthMiddleware(), authHandler.GetCurrentUser)
+			}
+		}
 
 		// User routes
 		userHandler := handlers.NewUserHandler()

@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/philopaterwaheed/passGO/internal/backend/database"
 	"github.com/philopaterwaheed/passGO/internal/backend/models"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // UserHandler handles HTTP requests for user operations
@@ -31,18 +30,9 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	// Hash the password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
-		return
-	}
 
 	user := &models.User{
 		Email:    req.Email,
-		Username: req.Username,
-		Password: string(hashedPassword),
-		FullName: req.FullName,
 	}
 
 	if err := h.repo.CreateUser(c.Request.Context(), user); err != nil {

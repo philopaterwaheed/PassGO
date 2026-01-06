@@ -96,6 +96,7 @@ func (s *SupabaseClient) SignUp(email, password string) (*SupabaseAuthResponse, 
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
+	fmt.Println(string(respBody))
 	if err != nil {
 		return nil, err
 	}
@@ -155,17 +156,18 @@ func (s *SupabaseClient) SignIn(email, password string) (*SupabaseAuthResponse, 
 		return nil, err
 	}
 
+	fmt.Println(string(respBody))
 	if resp.StatusCode >= 400 {
 		var errResp SupabaseErrorResponse
 		if err := json.Unmarshal(respBody, &errResp); err == nil {
-			if errResp.ErrorDescription == "Invalid login credentials" {
+			if errResp.Message == "Invalid login credentials" {
 				return nil, ErrInvalidCredentials
 			}
-			if errResp.ErrorDescription == "Email not confirmed" {
+			if errResp.Message == "Email not confirmed" {
 				return nil, ErrEmailNotVerified
 			}
-			if errResp.ErrorDescription != "" {
-				return nil, fmt.Errorf("%s", errResp.ErrorDescription)
+			if errResp.Message != "" {
+				return nil, fmt.Errorf("%s", errResp.Message)
 			}
 		}
 		return nil, ErrLoginFailed

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,7 @@ type AuthHandler struct {
 func NewAuthHandler() (*AuthHandler, error) {
 	supabaseClient, err := auth.NewSupabaseClient()
 	if err != nil {
+		fmt.Println("Error creating Supabase client:", err)
 		return nil, err
 	}
 
@@ -47,6 +49,7 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 	// Register with Supabase
 	supabaseResp, err := h.supabase.SignUp(req.Email, req.Password)
 	if err != nil {
+		fmt.Printf("Supabase SignUp Error: %v\n", err) // Log error
 		if errors.Is(err, auth.ErrUserAlreadyExists) {
 			c.JSON(http.StatusConflict, gin.H{"error": "User already exists in authentication system"})
 			return
@@ -63,12 +66,9 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 	}
 
 	if err := h.repo.CreateUser(c.Request.Context(), user); err != nil {
+		fmt.Printf("CreateUser Error: %v\n", err) // Log error
 		if errors.Is(err, database.ErrDuplicateEmail) {
 			c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
-			return
-		}
-		if errors.Is(err, database.ErrDuplicateUsername) {
-			c.JSON(http.StatusConflict, gin.H{"error": "Username already exists"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
@@ -91,6 +91,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Authenticate with Supabase
 	supabaseResp, err := h.supabase.SignIn(req.Email, req.Password)
+	fmt.Println("Supabase Login Response:", supabaseResp)
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidCredentials) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
@@ -149,21 +150,103 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	})
 }
 
-// VerifyEmail handles POST /api/auth/verify-email
+// VerifyEmail handles GET /api/auth/verify-email
 func (h *AuthHandler) VerifyEmail(c *gin.Context) {
-	var req models.VerifyEmailRequest
+	html := `
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<title>Verifying Email...</title>
+			<script>
+				window.onload = function() {
+					// Check for hash
+					if (window.location.hash) {
+						const params = new URLSearchParams(window.location.hash.substring(1));
+						const accessToken = params.get('access_token');
+						const refreshToken = params.get('refresh_token');
+						const type = params.get('type');
+						
+						if (accessToken) {
+							// Send to backend to finalize verification
+							fetch('/api/auth/verify-hash', {
+								method: 'POST',
+								headers: {
+									'Content-Type': 'application/json'
+								},
+								body: JSON.stringify({
+									access_token: accessToken,
+									refresh_token: refreshToken,
+								})
+							})
+							.then(response => response.json())
+							.then(data => {
+								if (data.error) {
+									document.body.innerHTML = '<h1>Error: ' + data.error + '</h1>';
+								} else {
+									document.body.innerHTML = '<h1>Email Verified Successfully!</h1><p>You can now close this window or return to the app.</p>';
+								}
+							})
+							.catch(err => {
+								document.body.innerHTML = '<h1>Error verifying email</h1>';
+							});
+						} else {
+							document.body.innerHTML = '<h1>Invalid Link</h1><p>No access token found.</p>';
+						}
+					} else {
+						// Check for query params (server-side flow)
+						const params = new URLSearchParams(window.location.search);
+						if (params.has('token') && params.has('email')) {
+							document.body.innerHTML = '<h1>Processing...</h1>';
+						} 
+					}
+				}
+			</script>
+		</head>
+		<body>
+			<h1>Verifying email...</h1>
+		</body>
+		</html>
+		`
+
+		// If query params exist, try to verify
+		if c.Query("token") != "" && c.Query("email") != "" {
+			var req models.VerifyEmailRequest
+			if err := c.ShouldBind(&req); err == nil {
+				supabaseResp, err := h.supabase.VerifyOTP(req.Email, req.Token, "signup")
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired verification token"})
+					return
+				}
+				h.finalizeVerification(c, req.Email, supabaseResp.User.ID)
+				return
+			}
+		}
+
+		c.Header("Content-Type", "text/html")
+		c.String(http.StatusOK, html)
+	}
+
+// VerifyHash handles the callback from the frontend/hash verification
+func (h *AuthHandler) VerifyHash(c *gin.Context) {
+	var req models.VerifyHashRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	supabaseResp, err := h.supabase.VerifyOTP(req.Email, req.Token, "signup")
+	// Verify the access token with Supabase
+	user, err := h.supabase.GetUser(req.AccessToken)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired verification token"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid access token"})
 		return
 	}
 
-	user, err := h.repo.GetUserByEmail(c.Request.Context(), req.Email)
+	h.finalizeVerification(c, user.Email, user.ID)
+}
+
+// Helper to finalize verification (update DB and return token)
+func (h *AuthHandler) finalizeVerification(c *gin.Context, email, supabaseUID string) {
+	user, err := h.repo.GetUserByEmail(c.Request.Context(), email)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
@@ -174,7 +257,7 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 		return
 	}
 
-	token, err := auth.GenerateToken(user.ID.Hex(), user.Email, supabaseResp.User.ID)
+	token, err := auth.GenerateToken(user.ID.Hex(), user.Email, supabaseUID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
@@ -291,4 +374,3 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, user.ToResponse())
 }
-

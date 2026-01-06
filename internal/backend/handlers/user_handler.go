@@ -40,10 +40,6 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
 			return
 		}
-		if errors.Is(err, database.ErrDuplicateUsername) {
-			c.JSON(http.StatusConflict, gin.H{"error": "Username already exists"})
-			return
-		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
@@ -134,10 +130,6 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
 			return
 		}
-		if errors.Is(err, database.ErrDuplicateUsername) {
-			c.JSON(http.StatusConflict, gin.H{"error": "Username already exists"})
-			return
-		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
 	}
@@ -181,19 +173,3 @@ func (h *UserHandler) GetUserByEmail(c *gin.Context) {
 	c.JSON(http.StatusOK, user.ToResponse())
 }
 
-// GetUserByUsername handles GET /api/users/username/:username
-func (h *UserHandler) GetUserByUsername(c *gin.Context) {
-	username := c.Param("username")
-
-	user, err := h.repo.GetUserByUsername(c.Request.Context(), username)
-	if err != nil {
-		if errors.Is(err, database.ErrUserNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
-		return
-	}
-
-	c.JSON(http.StatusOK, user.ToResponse())
-}

@@ -65,8 +65,8 @@ type SignupRequest struct {
 
 // VerifyEmailRequest represents the email verification request
 type VerifyEmailRequest struct {
-	Email string `json:"email" binding:"required,email"`
-	Token string `json:"token" binding:"required"`
+	Email string `json:"email" form:"email" binding:"required,email"`
+	Token string `json:"token" form:"token" binding:"required"`
 }
 
 // ResendVerificationRequest represents the resend verification email request

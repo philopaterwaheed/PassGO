@@ -16,7 +16,6 @@ const usersCollection = "users"
 var (
 	ErrUserNotFound      = errors.New("user not found")
 	ErrDuplicateEmail    = errors.New("email already exists")
-	ErrDuplicateUsername = errors.New("username already exists")
 )
 
 // UserRepository handles user database operations
@@ -44,9 +43,6 @@ func (r *UserRepository) CreateUser(ctx context.Context, user *models.User) erro
 			// Check which field caused the duplicate key error
 			if containsField(err.Error(), "email") {
 				return ErrDuplicateEmail
-			}
-			if containsField(err.Error(), "username") {
-				return ErrDuplicateUsername
 			}
 		}
 		return err
@@ -88,19 +84,6 @@ func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 	return &user, nil
 }
 
-// GetUserByUsername retrieves a user by their username
-func (r *UserRepository) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
-	var user models.User
-	err := r.collection.FindOne(ctx, bson.M{"username": username}).Decode(&user)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrUserNotFound
-		}
-		return nil, err
-	}
-
-	return &user, nil
-}
 
 // GetUserBySupabaseUID retrieves a user by their Supabase UID
 func (r *UserRepository) GetUserBySupabaseUID(ctx context.Context, supabaseUID string) (*models.User, error) {
@@ -204,9 +187,6 @@ func (r *UserRepository) UpdateUser(ctx context.Context, id string, update *mode
 			if containsField(err.Error(), "email") {
 				return nil, ErrDuplicateEmail
 			}
-			if containsField(err.Error(), "username") {
-				return nil, ErrDuplicateUsername
-			}
 		}
 		return nil, err
 	}
@@ -243,10 +223,6 @@ func (r *UserRepository) CreateIndexes(ctx context.Context) error {
 	indexes := []mongo.IndexModel{
 		{
 			Keys:    bson.D{{Key: "email", Value: 1}},
-			Options: options.Index().SetUnique(true),
-		},
-		{
-			Keys:    bson.D{{Key: "username", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 		{

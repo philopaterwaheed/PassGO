@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/philopaterwaheed/passGO/internal/backend/config"
 	"github.com/philopaterwaheed/passGO/internal/backend/database"
@@ -36,6 +37,17 @@ func Run() {
 // SetupRouter configures and returns the Gin router
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
+
+	// CORS configuration
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = false
+	config.AllowCredentials = true
+	config.AllowOriginFunc = func(origin string) bool {
+		return true
+	}
+	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
+	router.Use(cors.New(config))
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
@@ -72,7 +84,8 @@ func SetupRouter() *gin.Engine {
 			{
 				auth.POST("/signup", authHandler.Signup)
 				auth.POST("/login", authHandler.Login)
-				auth.POST("/verify-email", authHandler.VerifyEmail)
+				auth.GET("/verify-email", authHandler.VerifyEmail)
+				auth.POST("/verify-hash", authHandler.VerifyHash)
 				auth.POST("/resend-verification", authHandler.ResendVerification)
 				auth.POST("/forgot-password", authHandler.ForgotPassword)
 				auth.POST("/refresh", authHandler.RefreshToken)
@@ -92,7 +105,6 @@ func SetupRouter() *gin.Engine {
 			users.PUT("/:id", userHandler.UpdateUser)
 			users.DELETE("/:id", userHandler.DeleteUser)
 			users.GET("/email/:email", userHandler.GetUserByEmail)
-			users.GET("/username/:username", userHandler.GetUserByUsername)
 		}
 	}
 

@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"strings"
 
 	"gioui.org/app"
 	"gioui.org/font/gofont"
@@ -13,6 +14,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/philopaterwaheed/passGO/internal/frontend/api"
 	. "github.com/philopaterwaheed/passGO/internal/frontend/pages"
 )
 
@@ -44,6 +46,10 @@ func loop(w *app.Window) error {
 	registerPage := NewRegisterPage()
 	currentPage := "welcome"
 
+	// Initialize API client
+	// Default to localhost:8080, can be configured
+	apiClient := api.NewClient("https://fantastic-halibut-756rjg76p7g2q9p-8080.app.github.dev")
+
 	for {
 		switch e := w.Event().(type) {
 		case app.DestroyEvent:
@@ -64,6 +70,80 @@ func loop(w *app.Window) error {
 			if registerPage.BackBtn.Clicked(gtx) {
 				currentPage = "welcome"
 				registerPage.Reset()
+			}
+
+			// Handle login
+			if loginPage.LoginBtn.Clicked(gtx) && !loginPage.IsLoading {
+				email := loginPage.EmailInput.Text()
+				password := loginPage.PasswordInput.Text()
+
+				if email == "" || password == "" {
+					loginPage.ErrorMsg = "Email and password are required"
+				} else {
+					loginPage.IsLoading = true
+					loginPage.ErrorMsg = ""
+					loginPage.SuccessMsg = ""
+
+					// Call backend API in goroutine
+					go func() {
+						resp, err := apiClient.Login(email, password)
+						if err != nil {
+							loginPage.ErrorMsg = err.Error()
+							loginPage.IsLoading = false
+							w.Invalidate()
+							return
+						}
+
+						loginPage.SuccessMsg = "Login successful! Welcome, " + resp.User.Email
+						loginPage.IsLoading = false
+						// TODO: Navigate to main app and store token
+						log.Printf("Logged in successfully: %+v", resp.User)
+						w.Invalidate()
+					}()
+				}
+			}
+
+			// Handle registration
+			if registerPage.RegisterBtn.Clicked(gtx) && !registerPage.IsLoading {
+				email := registerPage.EmailInput.Text()
+				password := registerPage.PasswordInput.Text()
+				confirmPassword := registerPage.ConfirmPasswordInput.Text()
+
+				if email == "" || password == "" || confirmPassword == "" {
+					registerPage.ErrorMsg = "All fields are required"
+				} else if !strings.Contains(email, "@") {
+					registerPage.ErrorMsg = "Invalid email address"
+				} else if len(password) < 8 {
+					registerPage.ErrorMsg = "Password must be at least 8 characters"
+				} else if password != confirmPassword {
+					registerPage.ErrorMsg = "Passwords do not match"
+				} else {
+					registerPage.IsLoading = true
+					registerPage.ErrorMsg = ""
+					registerPage.SuccessMsg = ""
+
+					// Call backend API in goroutine
+					go func() {
+						resp, err := apiClient.Signup(email, password)
+						if err != nil {
+							registerPage.ErrorMsg = err.Error()
+							registerPage.IsLoading = false
+							w.Invalidate()
+							return
+						}
+
+						registerPage.SuccessMsg = resp.Message
+						if registerPage.SuccessMsg == "" {
+							registerPage.SuccessMsg = "Registration successful! Please check your email."
+						}
+						registerPage.IsLoading = false
+						// Clear password fields after successful registration
+						registerPage.PasswordInput.SetText("")
+						registerPage.ConfirmPasswordInput.SetText("")
+						log.Printf("Registered successfully: %+v", resp.User)
+						w.Invalidate()
+					}()
+				}
 			}
 
 			if currentPage == "login" {

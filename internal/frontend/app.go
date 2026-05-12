@@ -1,31 +1,38 @@
 package frontend
 
 import (
-	"image/color"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 
 	"gioui.org/app"
 	"gioui.org/font/gofont"
-	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
-	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/joho/godotenv"
 	"github.com/philopaterwaheed/passGO/internal/frontend/api"
-	. "github.com/philopaterwaheed/passGO/internal/frontend/pages"
+	"github.com/philopaterwaheed/passGO/internal/frontend/pages"
+	"github.com/philopaterwaheed/passGO/internal/frontend/state"
+	"github.com/philopaterwaheed/passGO/internal/frontend/ui"
 )
 
 // Run starts the Gio desktop/web application
 func Run() {
 	go func() {
 		w := new(app.Window)
-		w.Option(
-			app.Title("PassGO - Password Manager"),
-			app.Size(unit.Dp(800), unit.Dp(600)),
-		)
+		// Desktop gets a sensible default size; mobile/web will size the surface.
+		if runtime.GOOS != "android" && runtime.GOOS != "ios" && runtime.GOOS != "js" {
+			w.Option(
+				app.Title("PassGO - Password Manager"),
+				app.Size(unit.Dp(1024), unit.Dp(720)),
+			)
+		} else {
+			w.Option(app.Title("PassGO - Password Manager"))
+		}
 		if err := loop(w); err != nil {
 			log.Fatal(err)
 		}
@@ -35,20 +42,31 @@ func Run() {
 }
 
 func loop(w *app.Window) error {
+	// Best-effort: make local desktop/mobile runs pick up .env without requiring
+	// manual exporting. (On WASM it will typically just fail and be ignored.)
+	_ = godotenv.Load()
+
 	th := material.NewTheme()
 	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
 	var ops op.Ops
 
-	var loginBtn widget.Clickable
-	var registerBtn widget.Clickable
+	st := &state.AppState{Route: state.RouteWelcome, Nav: state.NavVault, DarkMode: true}
+	ui.ApplyTheme(th, st.DarkMode)
 
-	loginPage := NewLoginPage()
-	registerPage := NewRegisterPage()
-	currentPage := "welcome"
+	welcomePage := pages.NewWelcomePage()
+	loginPage := pages.NewLoginPage()
+	registerPage := pages.NewRegisterPage()
+	vaultListPage := pages.NewVaultListPage()
+	vaultAddPage := pages.NewVaultAddPage()
+	vaultDetailPage := pages.NewVaultDetailPage()
+	settingsPage := pages.NewSettingsPage()
+	shell := ui.NewShell()
 
-	// Initialize API client
-	// Default to localhost:8080, can be configured
-	apiClient := api.NewClient("https://fantastic-halibut-756rjg76p7g2q9p-8080.app.github.dev")
+	apiBaseURL := strings.TrimRight(os.Getenv("PASSGO_API_BASE_URL"), "/")
+	if apiBaseURL == "" {
+		apiBaseURL = "https://curly-memory-xp79gjr7q5gfpr46-8080.app.github.dev"
+	}
+	apiClient := api.NewClient(apiBaseURL)
 
 	for {
 		switch e := w.Event().(type) {
@@ -56,137 +74,53 @@ func loop(w *app.Window) error {
 			return e.Err
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
-
-			if loginBtn.Clicked(gtx) {
-				currentPage = "login"
-			}
-			if registerBtn.Clicked(gtx) {
-				currentPage = "register"
-			}
-			if loginPage.BackBtn.Clicked(gtx) {
-				currentPage = "welcome"
-				loginPage.Reset()
-			}
-			if registerPage.BackBtn.Clicked(gtx) {
-				currentPage = "welcome"
-				registerPage.Reset()
+			invalidate := false
+			invalidateFunc := func() {
+				w.Invalidate()
 			}
 
-			// Handle login
-			if loginPage.LoginBtn.Clicked(gtx) && !loginPage.IsLoading {
-				email := loginPage.EmailInput.Text()
-				password := loginPage.PasswordInput.Text()
+			ui.ApplyTheme(th, st.DarkMode)
 
-				if email == "" || password == "" {
-					loginPage.ErrorMsg = "Email and password are required"
-				} else {
-					loginPage.IsLoading = true
-					loginPage.ErrorMsg = ""
-					loginPage.SuccessMsg = ""
+			paint.Fill(gtx.Ops, th.Palette.Bg)
 
-					// Call backend API in goroutine
-					go func() {
-						resp, err := apiClient.Login(email, password)
-						if err != nil {
-							loginPage.ErrorMsg = err.Error()
-							loginPage.IsLoading = false
-							w.Invalidate()
-							return
-						}
-
-						loginPage.SuccessMsg = "Login successful! Welcome, " + resp.User.Email
-						loginPage.IsLoading = false
-						// TODO: Navigate to main app and store token
-						log.Printf("Logged in successfully: %+v", resp.User)
-						w.Invalidate()
-					}()
-				}
+			// Global navigation.
+			if shell.VaultBtn.Clicked(gtx) {
+				st.Nav = state.NavVault
+				st.Route = state.RouteVaultList
+			}
+			if shell.SettingsBtn.Clicked(gtx) {
+				st.Nav = state.NavSettings
+				st.Route = state.RouteSettings
+			}
+			if shell.LogoutBtn.Clicked(gtx) {
+				st.Auth = state.Auth{}
+				apiClient.Token = ""
+				st.Route = state.RouteWelcome
 			}
 
-			// Handle registration
-			if registerPage.RegisterBtn.Clicked(gtx) && !registerPage.IsLoading {
-				email := registerPage.EmailInput.Text()
-				password := registerPage.PasswordInput.Text()
-				confirmPassword := registerPage.ConfirmPasswordInput.Text()
-
-				if email == "" || password == "" || confirmPassword == "" {
-					registerPage.ErrorMsg = "All fields are required"
-				} else if !strings.Contains(email, "@") {
-					registerPage.ErrorMsg = "Invalid email address"
-				} else if len(password) < 8 {
-					registerPage.ErrorMsg = "Password must be at least 8 characters"
-				} else if password != confirmPassword {
-					registerPage.ErrorMsg = "Passwords do not match"
-				} else {
-					registerPage.IsLoading = true
-					registerPage.ErrorMsg = ""
-					registerPage.SuccessMsg = ""
-
-					// Call backend API in goroutine
-					go func() {
-						resp, err := apiClient.Signup(email, password)
-						if err != nil {
-							registerPage.ErrorMsg = err.Error()
-							registerPage.IsLoading = false
-							w.Invalidate()
-							return
-						}
-
-						registerPage.SuccessMsg = resp.Message
-						if registerPage.SuccessMsg == "" {
-							registerPage.SuccessMsg = "Registration successful! Please check your email."
-						}
-						registerPage.IsLoading = false
-						// Clear password fields after successful registration
-						registerPage.PasswordInput.SetText("")
-						registerPage.ConfirmPasswordInput.SetText("")
-						log.Printf("Registered successfully: %+v", resp.User)
-						w.Invalidate()
-					}()
-				}
+			// Layout.
+			switch st.Route {
+			case state.RouteLogin:
+				handleLoginPage(gtx, th, st, loginPage, apiClient, invalidateFunc)
+			case state.RouteRegister:
+				handleRegisterPage(gtx, th, st, registerPage, apiClient, invalidateFunc)
+			case state.RouteVaultList:
+				invalidate = handleVaultListPage(gtx, th, st, shell, vaultListPage, vaultAddPage, invalidateFunc)
+			case state.RouteVaultAdd:
+				invalidate = handleVaultAddPage(gtx, th, st, shell, vaultAddPage, invalidateFunc)
+			case state.RouteVaultDetail:
+				invalidate = handleVaultDetailPage(gtx, th, st, shell, vaultDetailPage, invalidateFunc)
+			case state.RouteSettings:
+				invalidate = handleSettingsPage(gtx, th, st, shell, settingsPage, apiBaseURL, invalidateFunc)
+			case state.RouteWelcome:
+				fallthrough
+			default:
+				handleWelcomePage(gtx, th, st, welcomePage)
 			}
 
-			if currentPage == "login" {
-				loginPage.Layout(gtx, th)
-			} else if currentPage == "register" {
-				registerPage.Layout(gtx, th)
-			} else {
-				layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return layout.Flex{
-						Axis:      layout.Vertical,
-						Spacing:   layout.SpaceBetween,
-						Alignment: layout.Middle,
-					}.Layout(gtx,
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							l := material.H3(th, "Welcome to PassGO")
-							l.Alignment = text.Middle
-							l.Color = color.NRGBA{R: 0, G: 0, B: 0, A: 255}
-							return l.Layout(gtx)
-						}),
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							l := material.Body1(th, "Your secure password manager")
-							l.Alignment = text.Middle
-							l.Color = color.NRGBA{R: 0, G: 0, B: 0, A: 255}
-							return l.Layout(gtx)
-						}),
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.Flex{
-								Axis:    layout.Horizontal,
-								Spacing: layout.SpaceEvenly,
-							}.Layout(gtx,
-								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-									return material.Button(th, &loginBtn, "Login").Layout(gtx)
-								}),
-								layout.Rigid(layout.Spacer{Width: unit.Dp(10)}.Layout),
-								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-									return material.Button(th, &registerBtn, "Register").Layout(gtx)
-								}),
-							)
-						}),
-					)
-				})
+			if invalidate {
+				gtx.Execute(op.InvalidateCmd{})
 			}
-
 			e.Frame(gtx.Ops)
 		}
 	}

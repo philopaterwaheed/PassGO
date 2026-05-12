@@ -47,6 +47,10 @@ go build -o passgo-backend ./cmd/backend
 go build -o passgo-frontend ./cmd/frontend
 ```
 
+Configuration:
+
+- `PASSGO_API_BASE_URL` (optional): Backend base URL used by the frontend (defaults to `http://localhost:8080`).
+
 ### Running
 
 #### Backend Server
@@ -65,6 +69,8 @@ Available endpoints:
 ```bash
 ./passgo-frontend
 ```
+
+Linux note: Gio desktop builds require system libraries (for example `libxkbcommon-dev` and Wayland/X11 dev packages) depending on your distro/window system.
 
 ### Testing
 

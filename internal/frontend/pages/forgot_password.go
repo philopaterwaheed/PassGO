@@ -9,49 +9,42 @@ import (
 	"github.com/philopaterwaheed/passGO/internal/frontend/ui"
 )
 
-type LoginPage struct {
-	EmailInput    widget.Editor
-	PasswordInput widget.Editor
-	LoginBtn      widget.Clickable
-	ForgotBtn     widget.Clickable
-	BackBtn       widget.Clickable
-	ErrorMsg      string
-	SuccessMsg    string
-	IsLoading     bool
+type ForgotPasswordPage struct {
+	EmailInput widget.Editor
+	SendBtn    widget.Clickable
+	BackBtn    widget.Clickable
+	ErrorMsg   string
+	SuccessMsg string
+	IsLoading  bool
 }
 
-func NewLoginPage() *LoginPage {
-	return &LoginPage{
-		EmailInput: widget.Editor{
-			SingleLine: true,
-			Submit:     true,
-		},
-		PasswordInput: widget.Editor{
-			SingleLine: true,
-			Submit:     true,
-			Mask:       '*',
-		},
+func NewForgotPasswordPage() *ForgotPasswordPage {
+	return &ForgotPasswordPage{
+		EmailInput: widget.Editor{SingleLine: true, Submit: true},
 	}
 }
 
-func (p *LoginPage) Reset() {
+func (p *ForgotPasswordPage) Reset() {
 	p.EmailInput.SetText("")
-	p.PasswordInput.SetText("")
 	p.ErrorMsg = ""
 	p.SuccessMsg = ""
 	p.IsLoading = false
 }
-func (p *LoginPage) Layout(gtx layout.Context, th *material.Theme) layout.Dimensions {
+
+func (p *ForgotPasswordPage) Layout(gtx layout.Context, th *material.Theme) layout.Dimensions {
 	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(420)))
 		children := []layout.FlexChild{
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Center.Layout(gtx, material.H4(th, "Log in").Layout)
+				return layout.Center.Layout(gtx, material.H4(th, "Reset password").Layout)
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return material.Body2(th, "We will email you a reset link.").Layout(gtx)
+			}),
+			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
 		}
 
-		// Show error message if any
 		if p.ErrorMsg != "" {
 			children = append(children,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -61,7 +54,6 @@ func (p *LoginPage) Layout(gtx layout.Context, th *material.Theme) layout.Dimens
 			)
 		}
 
-		// Show success message if any
 		if p.SuccessMsg != "" {
 			children = append(children,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -77,27 +69,13 @@ func (p *LoginPage) Layout(gtx layout.Context, th *material.Theme) layout.Dimens
 				e.TextSize = unit.Sp(16)
 				return e.Layout(gtx)
 			}),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				e := material.Editor(th, &p.PasswordInput, "Password")
-				e.TextSize = unit.Sp(16)
-				return e.Layout(gtx)
-			}),
-			layout.Rigid(layout.Spacer{Height: unit.Dp(6)}.Layout),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				btn := material.Button(th, &p.ForgotBtn, "Forgot password?")
-				btn.Background = th.Palette.Bg
-				btn.Color = th.Palette.ContrastBg
-				btn.TextSize = unit.Sp(14)
-				return btn.Layout(gtx)
-			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(20)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				btnText := "Log in"
+				btnText := "Send reset link"
 				if p.IsLoading {
-					btnText = "Logging in..."
+					btnText = "Sending..."
 				}
-				btn := material.Button(th, &p.LoginBtn, btnText)
+				btn := material.Button(th, &p.SendBtn, btnText)
 				btn.TextSize = unit.Sp(16)
 				return btn.Layout(gtx)
 			}),

@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -165,6 +166,10 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 						const accessToken = params.get('access_token');
 						const refreshToken = params.get('refresh_token');
 						const type = params.get('type');
+						if (type === 'recovery') {
+							window.location.replace('/api/auth/reset-password' + window.location.hash);
+							return;
+						}
 						
 						if (accessToken) {
 							// Send to backend to finalize verification
@@ -208,23 +213,23 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 		</html>
 		`
 
-		// If query params exist, try to verify
-		if c.Query("token") != "" && c.Query("email") != "" {
-			var req models.VerifyEmailRequest
-			if err := c.ShouldBind(&req); err == nil {
-				supabaseResp, err := h.supabase.VerifyOTP(req.Email, req.Token, "signup")
-				if err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired verification token"})
-					return
-				}
-				h.finalizeVerification(c, req.Email, supabaseResp.User.ID)
+	// If query params exist, try to verify
+	if c.Query("token") != "" && c.Query("email") != "" {
+		var req models.VerifyEmailRequest
+		if err := c.ShouldBind(&req); err == nil {
+			supabaseResp, err := h.supabase.VerifyOTP(req.Email, req.Token, "signup")
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired verification token"})
 				return
 			}
+			h.finalizeVerification(c, req.Email, supabaseResp.User.ID)
+			return
 		}
-
-		c.Header("Content-Type", "text/html")
-		c.String(http.StatusOK, html)
 	}
+
+	c.Header("Content-Type", "text/html")
+	c.String(http.StatusOK, html)
+}
 
 // VerifyHash handles the callback from the frontend/hash verification
 func (h *AuthHandler) VerifyHash(c *gin.Context) {
@@ -313,18 +318,142 @@ func (h *AuthHandler) ResendVerification(c *gin.Context) {
 func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	var req models.ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("ForgotPassword bind error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	log.Printf("ForgotPassword request for email=%s", req.Email)
+
 	// Send password reset email via Supabase
 	// Don't check if user exists for security reasons
 	if err := h.supabase.ResetPassword(req.Email); err != nil {
+		log.Printf("ForgotPassword supabase error for email=%s: %v", req.Email, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send password reset email"})
 		return
 	}
 
+	log.Printf("ForgotPassword email sent for email=%s", req.Email)
 	c.JSON(http.StatusOK, gin.H{"message": "If your email is registered, you will receive a password reset email"})
+}
+
+// ResetPasswordPage handles GET /api/auth/reset-password
+func (h *AuthHandler) ResetPasswordPage(c *gin.Context) {
+	html := `
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<title>Reset Password</title>
+			<meta name="viewport" content="width=device-width, initial-scale=1" />
+			<style>
+				body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 40px; background: #f6f7f9; color: #1a1a1a; }
+				.card { max-width: 420px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+				label { display: block; margin-top: 12px; font-size: 14px; }
+				input { width: 100%; padding: 10px 12px; margin-top: 6px; border: 1px solid #d5d7db; border-radius: 8px; font-size: 16px; }
+				button { width: 100%; margin-top: 18px; padding: 12px; border: 0; border-radius: 8px; background: #1f6feb; color: #fff; font-size: 16px; cursor: pointer; }
+				button:disabled { opacity: 0.6; cursor: default; }
+				.msg { margin-top: 12px; font-size: 14px; }
+			</style>
+		</head>
+		<body>
+			<div class="card">
+				<h2>Reset your password</h2>
+				<p>Enter a new password to continue.</p>
+				<label for="password">New password</label>
+				<input id="password" type="password" autocomplete="new-password" />
+				<label for="confirm">Confirm password</label>
+				<input id="confirm" type="password" autocomplete="new-password" />
+				<button id="submit">Update password</button>
+				<div id="msg" class="msg"></div>
+			</div>
+			<script>
+				function getAccessToken() {
+					var token = "";
+					if (window.location.hash) {
+						var params = new URLSearchParams(window.location.hash.substring(1));
+						token = params.get('access_token') || "";
+					}
+					if (!token) {
+						var query = new URLSearchParams(window.location.search);
+						token = query.get('access_token') || "";
+					}
+					return token;
+				}
+
+				var token = getAccessToken();
+				var msg = document.getElementById('msg');
+				if (!token) {
+					msg.textContent = 'Invalid or expired reset link. Please request a new one.';
+					msg.style.color = '#b42318';
+					document.getElementById('submit').disabled = true;
+				}
+
+				document.getElementById('submit').addEventListener('click', function () {
+					var password = document.getElementById('password').value;
+					var confirm = document.getElementById('confirm').value;
+					msg.textContent = '';
+
+					if (!password || password.length < 8) {
+						msg.textContent = 'Password must be at least 8 characters.';
+						msg.style.color = '#b42318';
+						return;
+					}
+					if (password !== confirm) {
+						msg.textContent = 'Passwords do not match.';
+						msg.style.color = '#b42318';
+						return;
+					}
+
+					this.disabled = true;
+					this.textContent = 'Updating...';
+
+					fetch('/api/auth/update-password', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ access_token: token, new_password: password })
+					})
+					.then(function (res) { return res.json(); })
+					.then(function (data) {
+						if (data.error) {
+							msg.textContent = data.error;
+							msg.style.color = '#b42318';
+						} else {
+							msg.textContent = 'Password updated. You can close this window and return to the app.';
+							msg.style.color = '#027a48';
+						}
+					})
+					.catch(function () {
+						msg.textContent = 'Failed to update password.';
+						msg.style.color = '#b42318';
+					})
+					.finally(() => {
+						document.getElementById('submit').disabled = false;
+						document.getElementById('submit').textContent = 'Update password';
+					});
+				});
+			</script>
+		</body>
+		</html>
+		`
+
+	c.Header("Content-Type", "text/html")
+	c.String(http.StatusOK, html)
+}
+
+// Updates a user's password using the access token from the reset link
+func (h *AuthHandler) UpdatePassword(c *gin.Context) {
+	var req models.UpdatePasswordWithTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.supabase.UpdatePassword(req.AccessToken, req.NewPassword); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to update password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
 }
 
 // RefreshToken handles POST /api/auth/refresh

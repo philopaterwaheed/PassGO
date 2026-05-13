@@ -1,7 +1,7 @@
 package frontend
 
 import (
-	"log"
+	"strings"
 
 	"gioui.org/layout"
 	"gioui.org/widget/material"
@@ -11,38 +11,33 @@ import (
 	"github.com/philopaterwaheed/passGO/internal/frontend/state"
 )
 
-func handleLoginPage(
+func handleForgotPasswordPage(
 	gtx layout.Context,
 	th *material.Theme,
 	st *state.AppState,
-	page *pages.LoginPage,
+	page *pages.ForgotPasswordPage,
 	apiClient *api.Client,
 	invalidate func(),
 ) {
 	if page.BackBtn.Clicked(gtx) {
-		st.Route = state.RouteWelcome
+		st.Route = state.RouteLogin
 		page.Reset()
 	}
 
-	if page.ForgotBtn.Clicked(gtx) {
-		st.Route = state.RouteForgotPassword
-		page.ErrorMsg = ""
-		page.SuccessMsg = ""
-	}
-
-	if page.LoginBtn.Clicked(gtx) && !page.IsLoading {
+	if page.SendBtn.Clicked(gtx) && !page.IsLoading {
 		email := page.EmailInput.Text()
-		password := page.PasswordInput.Text()
 
-		if email == "" || password == "" {
-			page.ErrorMsg = "Email and password are required"
+		if email == "" {
+			page.ErrorMsg = "Email is required"
+		} else if !strings.Contains(email, "@") {
+			page.ErrorMsg = "Invalid email address"
 		} else {
 			page.IsLoading = true
 			page.ErrorMsg = ""
 			page.SuccessMsg = ""
 
 			go func() {
-				resp, err := apiClient.Login(email, password)
+				msg, err := apiClient.ForgotPassword(email)
 				if err != nil {
 					page.ErrorMsg = err.Error()
 					page.IsLoading = false
@@ -50,13 +45,11 @@ func handleLoginPage(
 					return
 				}
 
-				st.Auth.Token = resp.Token
-				st.Auth.Email = resp.User.Email
-				page.SuccessMsg = "Welcome, " + resp.User.Email
+				if msg == "" {
+					msg = "If your email is registered, you will receive a reset link."
+				}
+				page.SuccessMsg = msg
 				page.IsLoading = false
-				st.Nav = state.NavVault
-				st.Route = state.RouteVaultList
-				log.Printf("Logged in successfully: %+v", resp.User)
 				invalidate()
 			}()
 		}

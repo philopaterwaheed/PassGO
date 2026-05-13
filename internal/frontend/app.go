@@ -56,6 +56,7 @@ func loop(w *app.Window) error {
 	welcomePage := pages.NewWelcomePage()
 	loginPage := pages.NewLoginPage()
 	registerPage := pages.NewRegisterPage()
+	forgotPasswordPage := pages.NewForgotPasswordPage()
 	vaultListPage := pages.NewVaultListPage()
 	vaultAddPage := pages.NewVaultAddPage()
 	vaultDetailPage := pages.NewVaultDetailPage()
@@ -104,6 +105,8 @@ func loop(w *app.Window) error {
 				handleLoginPage(gtx, th, st, loginPage, apiClient, invalidateFunc)
 			case state.RouteRegister:
 				handleRegisterPage(gtx, th, st, registerPage, apiClient, invalidateFunc)
+			case state.RouteForgotPassword:
+				handleForgotPasswordPage(gtx, th, st, forgotPasswordPage, apiClient, invalidateFunc)
 			case state.RouteVaultList:
 				invalidate = handleVaultListPage(gtx, th, st, shell, vaultListPage, vaultAddPage, invalidateFunc)
 			case state.RouteVaultAdd:

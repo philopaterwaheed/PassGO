@@ -84,6 +84,12 @@ type UpdatePasswordRequest struct {
 	NewPassword string `json:"new_password" binding:"required,min=8"`
 }
 
+// UpdatePasswordWithTokenRequest represents the update password request with access token
+type UpdatePasswordWithTokenRequest struct {
+	AccessToken string `json:"access_token" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=8"`
+}
+
 // AuthResponse represents the authentication response with token
 type AuthResponse struct {
 	Token string       `json:"token"`

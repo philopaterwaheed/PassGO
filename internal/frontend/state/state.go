@@ -12,6 +12,7 @@ const (
 	RouteWelcome Route = iota
 	RouteLogin
 	RouteRegister
+	RouteForgotPassword
 	RouteVaultList
 	RouteVaultAdd
 	RouteVaultDetail

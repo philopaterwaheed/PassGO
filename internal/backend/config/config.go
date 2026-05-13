@@ -20,6 +20,7 @@ var (
 
 	SupabaseURL    string
 	SupabaseAPIKey string
+	PublicBaseURL  string
 )
 
 func init() {
@@ -36,6 +37,7 @@ func init() {
 	MongoDatabase = getEnv("MONGO_DATABASE", "passgo")
 	SupabaseURL = getEnv("SUPABASE_URL", "")
 	SupabaseAPIKey = getEnv("SUPABASE_API_KEY", "")
+	PublicBaseURL = getEnv("PASSGO_PUBLIC_BASE_URL", "")
 }
 
 func getEnv(key, defaultValue string) string {

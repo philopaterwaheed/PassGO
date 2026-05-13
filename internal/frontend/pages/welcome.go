@@ -28,7 +28,7 @@ func (p *WelcomePage) Layout(gtx layout.Context, th *material.Theme) layout.Dime
 				layout.Rigid(material.Body1(th, "Minimal, fast password manager").Layout),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(20)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					btn := material.Button(th, &p.LoginBtn, "Log in", )
+					btn := material.Button(th, &p.LoginBtn, "Log in")
 					btn.Background = th.Palette.ContrastBg
 					btn.TextSize = unit.Sp(16)
 					return btn.Layout(gtx)

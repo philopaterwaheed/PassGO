@@ -88,6 +88,8 @@ func SetupRouter() *gin.Engine {
 				auth.POST("/verify-hash", authHandler.VerifyHash)
 				auth.POST("/resend-verification", authHandler.ResendVerification)
 				auth.POST("/forgot-password", authHandler.ForgotPassword)
+				auth.GET("/reset-password", authHandler.ResetPasswordPage)
+				auth.POST("/update-password", authHandler.UpdatePassword)
 				auth.POST("/refresh", authHandler.RefreshToken)
 
 				// Protected auth routes

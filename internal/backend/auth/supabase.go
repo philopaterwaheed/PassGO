@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/philopaterwaheed/passGO/internal/backend/config"
@@ -26,6 +28,14 @@ type SupabaseClient struct {
 	url    string
 	apiKey string
 	client *http.Client
+}
+
+func buildRedirectURL(path string) string {
+	base := strings.TrimRight(config.PublicBaseURL, "/")
+	if base == "" {
+		return ""
+	}
+	return base + path
 }
 
 // SupabaseUser represents a user from Supabase Auth
@@ -74,6 +84,9 @@ func (s *SupabaseClient) SignUp(email, password string) (*SupabaseAuthResponse, 
 	payload := map[string]string{
 		"email":    email,
 		"password": password,
+	}
+	if redirect := buildRedirectURL("/api/auth/verify-email"); redirect != "" {
+		payload["redirect_to"] = redirect
 	}
 
 	body, err := json.Marshal(payload)
@@ -225,6 +238,9 @@ func (s *SupabaseClient) ResendVerificationEmail(email string) error {
 		"email": email,
 		"type":  "signup",
 	}
+	if redirect := buildRedirectURL("/api/auth/verify-email"); redirect != "" {
+		payload["redirect_to"] = redirect
+	}
 
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -301,6 +317,9 @@ func (s *SupabaseClient) ResetPassword(email string) error {
 	payload := map[string]string{
 		"email": email,
 	}
+	if redirect := buildRedirectURL("/api/auth/reset-password"); redirect != "" {
+		payload["redirect_to"] = redirect
+	}
 
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -321,9 +340,17 @@ func (s *SupabaseClient) ResetPassword(email string) error {
 	}
 	defer resp.Body.Close()
 
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
 	if resp.StatusCode >= 400 {
+		log.Printf("Supabase recover failed status=%d body=%s", resp.StatusCode, string(respBody))
 		return errors.New("failed to send password reset email")
 	}
+
+	log.Printf("Supabase recover ok status=%d", resp.StatusCode)
 
 	return nil
 }

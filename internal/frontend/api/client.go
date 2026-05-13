@@ -38,6 +38,11 @@ type SignupRequest struct {
 	Password string `json:"password"`
 }
 
+// ForgotPasswordRequest represents reset email request
+type ForgotPasswordRequest struct {
+	Email string `json:"email"`
+}
+
 // UserResponse represents user data from API
 type UserResponse struct {
 	ID            string    `json:"id"`
@@ -145,6 +150,48 @@ func (c *Client) Signup(email, password string) (*AuthResponse, error) {
 	}
 
 	return &authResp, nil
+}
+
+// ForgotPassword triggers a password reset email
+func (c *Client) ForgotPassword(email string) (string, error) {
+	req := ForgotPasswordRequest{Email: email}
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	resp, err := c.HTTPClient.Post(
+		c.BaseURL+"/api/auth/forgot-password",
+		"application/json",
+		bytes.NewBuffer(body),
+	)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var errResp ErrorResponse
+		if err := json.Unmarshal(respBody, &errResp); err != nil {
+			return "", fmt.Errorf("request failed with status %d", resp.StatusCode)
+		}
+		return "", fmt.Errorf("%s", errResp.Error)
+	}
+
+	var okResp struct {
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(respBody, &okResp); err != nil {
+		return "", fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return okResp.Message, nil
 }
 
 // GetCurrentUser retrieves the current authenticated user

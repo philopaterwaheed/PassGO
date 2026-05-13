@@ -9,6 +9,7 @@ import (
 	"github.com/philopaterwaheed/passGO/internal/frontend/api"
 	"github.com/philopaterwaheed/passGO/internal/frontend/pages"
 	"github.com/philopaterwaheed/passGO/internal/frontend/state"
+	"github.com/philopaterwaheed/passGO/internal/frontend/storage"
 )
 
 func handleLoginPage(
@@ -17,6 +18,7 @@ func handleLoginPage(
 	st *state.AppState,
 	page *pages.LoginPage,
 	apiClient *api.Client,
+	sessionStore storage.SessionStore,
 	invalidate func(),
 ) {
 	if page.BackBtn.Clicked(gtx) {
@@ -52,6 +54,7 @@ func handleLoginPage(
 
 				st.Auth.Token = resp.Token
 				st.Auth.Email = resp.User.Email
+				_ = sessionStore.Save(storage.Session{Token: resp.Token, Email: resp.User.Email})
 				page.SuccessMsg = "Welcome, " + resp.User.Email
 				page.IsLoading = false
 				st.Nav = state.NavVault

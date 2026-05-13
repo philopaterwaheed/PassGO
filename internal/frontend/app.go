@@ -17,6 +17,7 @@ import (
 	"github.com/philopaterwaheed/passGO/internal/frontend/api"
 	"github.com/philopaterwaheed/passGO/internal/frontend/pages"
 	"github.com/philopaterwaheed/passGO/internal/frontend/state"
+	"github.com/philopaterwaheed/passGO/internal/frontend/storage"
 	"github.com/philopaterwaheed/passGO/internal/frontend/ui"
 )
 
@@ -68,6 +69,32 @@ func loop(w *app.Window) error {
 		apiBaseURL = "https://curly-memory-xp79gjr7q5gfpr46-8080.app.github.dev"
 	}
 	apiClient := api.NewClient(apiBaseURL)
+	sessionStore := storage.NewSessionStore()
+
+	if sess, err := sessionStore.Load(); err == nil && sess.Token != "" {
+		st.Auth.Token = sess.Token
+		st.Auth.Email = sess.Email
+		apiClient.Token = sess.Token
+		st.Nav = state.NavVault
+		st.Route = state.RouteVaultList
+
+		// Best-effort validation/refresh of the restored session.
+		go func() {
+			user, err := apiClient.GetCurrentUser()
+			if err != nil {
+				_ = sessionStore.Clear()
+				st.Auth = state.Auth{}
+				apiClient.Token = ""
+				st.Route = state.RouteWelcome
+				w.Invalidate()
+				return
+			}
+
+			st.Auth.Email = user.Email
+			_ = sessionStore.Save(storage.Session{Token: st.Auth.Token, Email: st.Auth.Email})
+			w.Invalidate()
+		}()
+	}
 
 	for {
 		switch e := w.Event().(type) {
@@ -96,13 +123,14 @@ func loop(w *app.Window) error {
 			if shell.LogoutBtn.Clicked(gtx) {
 				st.Auth = state.Auth{}
 				apiClient.Token = ""
+				_ = sessionStore.Clear()
 				st.Route = state.RouteWelcome
 			}
 
 			// Layout.
 			switch st.Route {
 			case state.RouteLogin:
-				handleLoginPage(gtx, th, st, loginPage, apiClient, invalidateFunc)
+				handleLoginPage(gtx, th, st, loginPage, apiClient, sessionStore, invalidateFunc)
 			case state.RouteRegister:
 				handleRegisterPage(gtx, th, st, registerPage, apiClient, invalidateFunc)
 			case state.RouteForgotPassword:

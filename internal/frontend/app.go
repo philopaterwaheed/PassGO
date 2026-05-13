@@ -66,7 +66,7 @@ func loop(w *app.Window) error {
 
 	apiBaseURL := strings.TrimRight(os.Getenv("PASSGO_API_BASE_URL"), "/")
 	if apiBaseURL == "" {
-		apiBaseURL = "https://curly-memory-xp79gjr7q5gfpr46-8080.app.github.dev"
+		apiBaseURL = "https://passgo.leapcell.app"
 	}
 	apiClient := api.NewClient(apiBaseURL)
 	sessionStore := storage.NewSessionStore()

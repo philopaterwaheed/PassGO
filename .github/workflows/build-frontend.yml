@@ -1,0 +1,118 @@
+name: build-frontend
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  web:
+    name: Web (WASM)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build WASM
+        run: make build-web
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: passgo-frontend-web
+          path: |
+            web/index.html
+            web/wasm_exec.js
+            web/main.wasm
+
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install Linux deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libwayland-dev \
+            libx11-dev \
+            libxrandr-dev \
+            libxinerama-dev \
+            libxcursor-dev
+      - name: Build desktop binary
+        shell: bash
+        run: |
+          mkdir -p dist
+          ext=""
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            ext=".exe"
+          fi
+          go build -o "dist/passgo-frontend-${{ runner.os }}${ext}" ./cmd/frontend
+      - name: Upload desktop artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: passgo-frontend-desktop-${{ runner.os }}
+          path: dist/
+
+  mobile:
+    name: Mobile (Android/iOS)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "ndk;25.2.9519653"
+      - name: Install Gio build tools
+        run: |
+          go install gioui.org/cmd/gogio@latest
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          gomobile init
+      - name: Build Android APK
+        run: |
+          mkdir -p dist
+          gogio -target android -o dist/passgo-frontend-android.apk ./cmd/frontend
+      - name: Build iOS app
+        run: |
+          mkdir -p dist
+          gogio -target ios -o dist/passgo-frontend-ios.app ./cmd/frontend
+      - name: Upload mobile artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: passgo-frontend-mobile
+          path: dist/

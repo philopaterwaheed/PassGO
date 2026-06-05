@@ -28,8 +28,9 @@ const (
 )
 
 type Auth struct {
-	Token string
-	Email string
+	Token          string
+	Email          string
+	MasterPassword string
 }
 
 // Vault represents a single credential entry stored
@@ -51,6 +52,7 @@ type AppState struct {
 
 	Vaults          []Vault
 	SelectedVaultID string
+	VaultsLoaded    bool
 }
 
 func (s *AppState) IsAuthed() bool {

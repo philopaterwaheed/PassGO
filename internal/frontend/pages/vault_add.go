@@ -28,7 +28,8 @@ type VaultAddPage struct {
 	SaveBtn widget.Clickable
 	BackBtn widget.Clickable
 
-	ErrorMsg string
+	ErrorMsg  string
+	IsLoading bool
 }
 
 func NewVaultAddPage() *VaultAddPage {
@@ -48,6 +49,7 @@ func (p *VaultAddPage) Reset() {
 	p.URLEd.SetText("")
 	p.NotesEd.SetText("")
 	p.ErrorMsg = ""
+	p.IsLoading = false
 }
 
 func (p *VaultAddPage) TryBuildVault() (state.Vault, bool) {
@@ -70,62 +72,82 @@ func (p *VaultAddPage) TryBuildVault() (state.Vault, bool) {
 func (p *VaultAddPage) Layout(gtx layout.Context, th *material.Theme) (layout.Dimensions, VaultAddAction) {
 	var action VaultAddAction
 
-	gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(520)))
+	for p.SaveBtn.Clicked(gtx) {
+		v, ok := p.TryBuildVault()
+		if ok {
+			action.Save = true
+			action.Vault = v
+		}
+	}
 
-	content := layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			if p.ErrorMsg == "" {
-				return layout.Dimensions{}
-			}
-			return layout.Inset{Bottom: unit.Dp(10)}.Layout(gtx, material.Body2(th, p.ErrorMsg).Layout)
-		}),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			e := material.Editor(th, &p.TitleEd, "Title")
-			e.TextSize = unit.Sp(16)
-			return e.Layout(gtx)
-		}),
-		layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			e := material.Editor(th, &p.UsernameEd, "Username")
-			e.TextSize = unit.Sp(16)
-			return e.Layout(gtx)
-		}),
-		layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			e := material.Editor(th, &p.PasswordEd, "Password")
-			e.TextSize = unit.Sp(16)
-			return e.Layout(gtx)
-		}),
-		layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			e := material.Editor(th, &p.URLEd, "URL")
-			e.TextSize = unit.Sp(16)
-			return e.Layout(gtx)
-		}),
-		layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			e := material.Editor(th, &p.NotesEd, "Notes")
-			e.TextSize = unit.Sp(16)
-			gtx.Constraints.Min.Y = gtx.Dp(unit.Dp(96))
-			return e.Layout(gtx)
-		}),
-		layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			btn := material.Button(th, &p.SaveBtn, "Save")
-			btn.TextSize = unit.Sp(16)
-			return btn.Layout(gtx)
-		}),
-		layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			gtx2 := gtx
-			gtx2.Constraints.Min.X = gtx2.Constraints.Max.X
-			return ui.OutlinedButton(gtx2, th, &p.BackBtn, "Back", th.Palette.Fg, th.Palette.ContrastBg)
-		}),
-	)
+	for p.BackBtn.Clicked(gtx) {
+		action.Back = true
+	}
 
-	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	dims := layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(520)))
 		return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return content
+			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					if p.ErrorMsg == "" {
+						return layout.Dimensions{}
+					}
+					return layout.Inset{Bottom: unit.Dp(10)}.Layout(gtx, material.Body2(th, p.ErrorMsg).Layout)
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					e := material.Editor(th, &p.TitleEd, "Title")
+					e.TextSize = unit.Sp(16)
+					return e.Layout(gtx)
+				}),
+				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					e := material.Editor(th, &p.UsernameEd, "Username")
+					e.TextSize = unit.Sp(16)
+					return e.Layout(gtx)
+				}),
+				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					e := material.Editor(th, &p.PasswordEd, "Password")
+					e.TextSize = unit.Sp(16)
+					return e.Layout(gtx)
+				}),
+				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					e := material.Editor(th, &p.URLEd, "URL")
+					e.TextSize = unit.Sp(16)
+					return e.Layout(gtx)
+				}),
+				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					e := material.Editor(th, &p.NotesEd, "Notes")
+					e.TextSize = unit.Sp(16)
+					height := gtx.Dp(unit.Dp(96))
+					gtx.Constraints.Min.Y = height
+					gtx.Constraints.Max.Y = height
+					return e.Layout(gtx)
+				}),
+				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					btnText := "Add vault"
+					if p.IsLoading {
+						btnText = "Adding..."
+					}
+					gtx.Constraints.Min.X = gtx.Constraints.Max.X
+					btn := material.Button(th, &p.SaveBtn, btnText)
+					btn.TextSize = unit.Sp(16)
+					btn.CornerRadius = unit.Dp(10)
+					btn.Background = th.Palette.ContrastBg
+					btn.Color = th.Palette.ContrastFg
+					return btn.Layout(gtx)
+				}),
+				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					gtx.Constraints.Min.X = gtx.Constraints.Max.X
+					return ui.OutlinedButton(gtx, th, &p.BackBtn, "Back", th.Palette.Fg, th.Palette.ContrastBg)
+				}),
+			)
 		})
-	}), action
+	})
+
+	return dims, action
 }

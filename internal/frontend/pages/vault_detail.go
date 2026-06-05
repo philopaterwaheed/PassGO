@@ -17,17 +17,35 @@ type VaultDetailAction struct {
 }
 
 type VaultDetailPage struct {
-	BackBtn widget.Clickable
+	BackBtn         widget.Clickable
+	ShowPasswordBtn widget.Clickable
+	ShowPassword    bool
 }
 
 func NewVaultDetailPage() *VaultDetailPage { return &VaultDetailPage{} }
 
+func (p *VaultDetailPage) Reset() {
+	p.ShowPassword = false
+}
+
 func (p *VaultDetailPage) Layout(gtx layout.Context, th *material.Theme, v state.Vault) (layout.Dimensions, VaultDetailAction) {
 	var action VaultDetailAction
 
-	mask := ""
+	for p.BackBtn.Clicked(gtx) {
+		action.Back = true
+	}
+
+	for p.ShowPasswordBtn.Clicked(gtx) {
+		p.ShowPassword = !p.ShowPassword
+	}
+
+	passStr := ""
 	if v.Password != "" {
-		mask = strings.Repeat("•", 10)
+		if p.ShowPassword {
+			passStr = v.Password
+		} else {
+			passStr = strings.Repeat("•", 10)
+		}
 	}
 
 	gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(520)))
@@ -38,18 +56,41 @@ func (p *VaultDetailPage) Layout(gtx layout.Context, th *material.Theme, v state
 		}),
 		layout.Rigid(layout.Spacer{Height: unit.Dp(14)}.Layout),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions { return field(th, gtx, "Username", v.Username) }),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions { return field(th, gtx, "Password", mask) }),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			if passStr == "" {
+				return layout.Dimensions{}
+			}
+			return layout.Inset{Bottom: unit.Dp(10)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(material.Caption(th, "Password").Layout),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+							layout.Flexed(1, material.Body1(th, passStr).Layout),
+							layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								btnTxt := "Show"
+								if p.ShowPassword {
+									btnTxt = "Hide"
+								}
+								btn := material.Button(th, &p.ShowPasswordBtn, btnTxt)
+								btn.TextSize = unit.Sp(12)
+								btn.Inset = layout.UniformInset(unit.Dp(6))
+								btn.Background = th.Palette.ContrastBg
+								btn.Color = th.Palette.ContrastFg
+								return btn.Layout(gtx)
+							}),
+						)
+					}),
+				)
+			})
+		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions { return field(th, gtx, "URL", v.URL) }),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions { return field(th, gtx, "Notes", v.Notes) }),
 		layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			gtx2 := gtx
 			gtx2.Constraints.Min.X = gtx2.Constraints.Max.X
-			d := ui.OutlinedButton(gtx2, th, &p.BackBtn, "Back", th.Palette.Fg, th.Palette.ContrastBg)
-			if p.BackBtn.Clicked(gtx) {
-				action.Back = true
-			}
-			return d
+			return ui.OutlinedButton(gtx2, th, &p.BackBtn, "Back", th.Palette.Fg, th.Palette.ContrastBg)
 		}),
 	)
 

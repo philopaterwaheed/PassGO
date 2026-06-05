@@ -60,6 +60,28 @@ type AuthResponse struct {
 	Message string       `json:"message,omitempty"`
 }
 
+// VaultRequest represents data when creating/updating a vault
+type VaultRequest struct {
+	Title    string `json:"title"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	URL      string `json:"url"`
+	Notes    string `json:"notes"`
+}
+
+// VaultResponse represents vault data from API
+type VaultResponse struct {
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
+	Title     string    `json:"title"`
+	Username  string    `json:"username"`
+	Password  string    `json:"password"`
+	URL       string    `json:"url"`
+	Notes     string    `json:"notes"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 // ErrorResponse represents an error from the API
 type ErrorResponse struct {
 	Error string `json:"error"`
@@ -232,4 +254,186 @@ func (c *Client) GetCurrentUser() (*UserResponse, error) {
 	}
 
 	return &user, nil
+}
+
+// CreateVault creates a new vault entry
+func (c *Client) CreateVault(masterPwd string, reqVault *VaultRequest) (*VaultResponse, error) {
+	if c.Token == "" {
+		return nil, fmt.Errorf("no authentication token")
+	}
+
+	body, err := json.Marshal(reqVault)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", c.BaseURL+"/api/vaults", bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Master-Password", masterPwd)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		var errResp ErrorResponse
+		if err := json.Unmarshal(respBody, &errResp); err == nil && errResp.Error != "" {
+			return nil, fmt.Errorf("%s", errResp.Error)
+		}
+		return nil, fmt.Errorf("request failed with status %d", resp.StatusCode)
+	}
+
+	var vaultResp VaultResponse
+	if err := json.Unmarshal(respBody, &vaultResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return &vaultResp, nil
+}
+
+// GetVaults retrieves all vault entries for the user
+func (c *Client) GetVaults(masterPwd string) ([]VaultResponse, error) {
+	if c.Token == "" {
+		return nil, fmt.Errorf("no authentication token")
+	}
+
+	req, err := http.NewRequest("GET", c.BaseURL+"/api/vaults", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("X-Master-Password", masterPwd)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var errResp ErrorResponse
+		if err := json.Unmarshal(respBody, &errResp); err == nil && errResp.Error != "" {
+			return nil, fmt.Errorf("%s", errResp.Error)
+		}
+		return nil, fmt.Errorf("request failed with status %d", resp.StatusCode)
+	}
+
+	var vaultsResp []VaultResponse
+	if err := json.Unmarshal(respBody, &vaultsResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return vaultsResp, nil
+}
+
+// GetVault retrieves a single vault entry
+func (c *Client) GetVault(id, masterPwd string) (*VaultResponse, error) {
+	if c.Token == "" {
+		return nil, fmt.Errorf("no authentication token")
+	}
+
+	req, err := http.NewRequest("GET", c.BaseURL+"/api/vaults/"+id, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("X-Master-Password", masterPwd)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("request failed with status %d", resp.StatusCode)
+	}
+
+	var vaultResp VaultResponse
+	if err := json.NewDecoder(resp.Body).Decode(&vaultResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+	return &vaultResp, nil
+}
+
+// UpdateVault updates an existing vault entry
+func (c *Client) UpdateVault(id, masterPwd string, reqVault *VaultRequest) (*VaultResponse, error) {
+	if c.Token == "" {
+		return nil, fmt.Errorf("no authentication token")
+	}
+
+	body, err := json.Marshal(reqVault)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequest("PUT", c.BaseURL+"/api/vaults/"+id, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Master-Password", masterPwd)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("request failed with status %d", resp.StatusCode)
+	}
+
+	var vaultResp VaultResponse
+	if err := json.NewDecoder(resp.Body).Decode(&vaultResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+	return &vaultResp, nil
+}
+
+// DeleteVault deletes an existing vault entry
+func (c *Client) DeleteVault(id string) error {
+	if c.Token == "" {
+		return fmt.Errorf("no authentication token")
+	}
+
+	req, err := http.NewRequest("DELETE", c.BaseURL+"/api/vaults/"+id, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("request failed with status %d", resp.StatusCode)
+	}
+
+	return nil
 }

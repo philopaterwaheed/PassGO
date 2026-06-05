@@ -54,7 +54,8 @@ func handleLoginPage(
 
 				st.Auth.Token = resp.Token
 				st.Auth.Email = resp.User.Email
-				_ = sessionStore.Save(storage.Session{Token: resp.Token, Email: resp.User.Email})
+				st.Auth.MasterPassword = password
+				_ = sessionStore.Save(storage.Session{Token: resp.Token, Email: resp.User.Email, MasterPassword: password})
 				page.SuccessMsg = "Welcome, " + resp.User.Email
 				page.IsLoading = false
 				st.Nav = state.NavVault

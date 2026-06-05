@@ -2,8 +2,9 @@ package storage
 
 // Session holds auth info persisted across app launches.
 type Session struct {
-	Token string `json:"token"`
-	Email string `json:"email"`
+	Token          string `json:"token"`
+	Email          string `json:"email"`
+	MasterPassword string `json:"master_password"`
 }
 
 // SessionStore persists Session information.

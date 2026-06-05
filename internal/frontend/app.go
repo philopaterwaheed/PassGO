@@ -66,7 +66,8 @@ func loop(w *app.Window) error {
 
 	apiBaseURL := strings.TrimRight(os.Getenv("PASSGO_API_BASE_URL"), "/")
 	if apiBaseURL == "" {
-		apiBaseURL = "https://passgo.leapcell.app"
+		// apiBaseURL = "https://passgo.leapcell.app"
+		apiBaseURL = "https://curly-memory-xp79gjr7q5gfpr46-8080.app.github.dev"
 	}
 	apiClient := api.NewClient(apiBaseURL)
 	sessionStore := storage.NewSessionStore()
@@ -74,6 +75,7 @@ func loop(w *app.Window) error {
 	if sess, err := sessionStore.Load(); err == nil && sess.Token != "" {
 		st.Auth.Token = sess.Token
 		st.Auth.Email = sess.Email
+		st.Auth.MasterPassword = sess.MasterPassword
 		apiClient.Token = sess.Token
 		st.Nav = state.NavVault
 		st.Route = state.RouteVaultList
@@ -91,7 +93,7 @@ func loop(w *app.Window) error {
 			}
 
 			st.Auth.Email = user.Email
-			_ = sessionStore.Save(storage.Session{Token: st.Auth.Token, Email: st.Auth.Email})
+			_ = sessionStore.Save(storage.Session{Token: st.Auth.Token, Email: st.Auth.Email, MasterPassword: st.Auth.MasterPassword})
 			w.Invalidate()
 		}()
 	}
@@ -122,6 +124,8 @@ func loop(w *app.Window) error {
 			}
 			if shell.LogoutBtn.Clicked(gtx) {
 				st.Auth = state.Auth{}
+				st.Vaults = []state.Vault{}
+				st.VaultsLoaded = false
 				apiClient.Token = ""
 				_ = sessionStore.Clear()
 				st.Route = state.RouteWelcome
@@ -136,11 +140,11 @@ func loop(w *app.Window) error {
 			case state.RouteForgotPassword:
 				handleForgotPasswordPage(gtx, th, st, forgotPasswordPage, apiClient, invalidateFunc)
 			case state.RouteVaultList:
-				invalidate = handleVaultListPage(gtx, th, st, shell, vaultListPage, vaultAddPage, invalidateFunc)
+				invalidate = handleVaultListPage(gtx, th, st, shell, vaultListPage, vaultAddPage, vaultDetailPage, apiClient, invalidateFunc)
 			case state.RouteVaultAdd:
-				invalidate = handleVaultAddPage(gtx, th, st, shell, vaultAddPage, invalidateFunc)
+				invalidate = handleVaultAddPage(gtx, th, st, shell, vaultAddPage, apiClient, invalidateFunc)
 			case state.RouteVaultDetail:
-				invalidate = handleVaultDetailPage(gtx, th, st, shell, vaultDetailPage, invalidateFunc)
+				invalidate = handleVaultDetailPage(gtx, th, st, shell, vaultDetailPage, apiClient, invalidateFunc)
 			case state.RouteSettings:
 				invalidate = handleSettingsPage(gtx, th, st, shell, settingsPage, apiBaseURL, invalidateFunc)
 			case state.RouteWelcome:
@@ -149,7 +153,7 @@ func loop(w *app.Window) error {
 				handleWelcomePage(gtx, th, st, welcomePage)
 			}
 
-			if invalidate {
+			if invalidate || runtime.GOOS == "js" {
 				gtx.Execute(op.InvalidateCmd{})
 			}
 			e.Frame(gtx.Ops)

@@ -45,7 +45,7 @@ func SetupRouter() *gin.Engine {
 	config.AllowOriginFunc = func(origin string) bool {
 		return true
 	}
-	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept"}
+	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept", "X-Master-Password"}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
 	router.Use(cors.New(config))
 
@@ -107,6 +107,18 @@ func SetupRouter() *gin.Engine {
 			users.PUT("/:id", userHandler.UpdateUser)
 			users.DELETE("/:id", userHandler.DeleteUser)
 			users.GET("/email/:email", userHandler.GetUserByEmail)
+		}
+
+		// Vault routes
+		vaultHandler := handlers.NewVaultHandler()
+		vaultsGroup := api.Group("/vaults")
+		vaultsGroup.Use(middleware.AuthMiddleware())
+		{
+			vaultsGroup.POST("", vaultHandler.CreateVault)
+			vaultsGroup.GET("", vaultHandler.GetVaults)
+			vaultsGroup.GET("/:id", vaultHandler.GetVault)
+			vaultsGroup.PUT("/:id", vaultHandler.UpdateVault)
+			vaultsGroup.DELETE("/:id", vaultHandler.DeleteVault)
 		}
 	}
 

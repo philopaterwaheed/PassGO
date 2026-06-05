@@ -13,7 +13,10 @@
 			}
 
 			const go = new Go();
-			WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
+			// Cache-bust during local development so rebuilds take effect on refresh.
+			const wasmURL = new URL("main.wasm", window.location.href);
+			wasmURL.searchParams.set("v", Date.now().toString());
+			WebAssembly.instantiateStreaming(fetch(wasmURL.toString()), go.importObject).then((result) => {
 				go.run(result.instance);
 			});
 		</script>

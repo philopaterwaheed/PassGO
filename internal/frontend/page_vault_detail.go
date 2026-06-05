@@ -4,6 +4,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/widget/material"
 
+	"github.com/philopaterwaheed/passGO/internal/frontend/api"
 	"github.com/philopaterwaheed/passGO/internal/frontend/pages"
 	"github.com/philopaterwaheed/passGO/internal/frontend/state"
 	"github.com/philopaterwaheed/passGO/internal/frontend/ui"
@@ -15,6 +16,7 @@ func handleVaultDetailPage(
 	st *state.AppState,
 	shell *ui.Shell,
 	page *pages.VaultDetailPage,
+	apiClient *api.Client,
 	invalidate func(),
 ) bool {
 	v, ok := st.VaultByID(st.SelectedVaultID)

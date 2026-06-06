@@ -53,6 +53,14 @@ type AppState struct {
 	Vaults          []Vault
 	SelectedVaultID string
 	VaultsLoaded    bool
+	VaultsLoading   bool
+	VaultsLoadError string
+	VaultsLoadDone  chan VaultLoadResult
+}
+
+type VaultLoadResult struct {
+	Vaults []Vault
+	Err    error
 }
 
 func (s *AppState) IsAuthed() bool {

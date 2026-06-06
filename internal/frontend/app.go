@@ -126,6 +126,9 @@ func loop(w *app.Window) error {
 				st.Auth = state.Auth{}
 				st.Vaults = []state.Vault{}
 				st.VaultsLoaded = false
+				st.VaultsLoading = false
+				st.VaultsLoadError = ""
+				st.VaultsLoadDone = nil
 				apiClient.Token = ""
 				_ = sessionStore.Clear()
 				st.Route = state.RouteWelcome

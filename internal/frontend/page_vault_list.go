@@ -23,17 +23,40 @@ func handleVaultListPage(
 	apiClient *api.Client,
 	invalidate func(),
 ) bool {
+	if st.VaultsLoadDone != nil {
+		select {
+		case result := <-st.VaultsLoadDone:
+			st.VaultsLoading = false
+			st.VaultsLoadDone = nil
+			if result.Err != nil {
+				log.Printf("Failed to fetch vaults: %v", result.Err)
+				st.VaultsLoadError = result.Err.Error()
+				st.VaultsLoaded = true
+			} else {
+				st.Vaults = result.Vaults
+				st.VaultsLoadError = ""
+				st.VaultsLoaded = true
+			}
+		default:
+		}
+	}
+
 	// Automatically fetch vaults once
-	if !st.VaultsLoaded && st.Auth.MasterPassword != "" {
-		st.VaultsLoaded = true
+	if !st.VaultsLoaded && !st.VaultsLoading && st.Auth.MasterPassword != "" {
+		st.VaultsLoading = true
+		st.VaultsLoadError = ""
+		masterPassword := st.Auth.MasterPassword
+		done := make(chan state.VaultLoadResult, 1)
+		st.VaultsLoadDone = done
+
 		go func() {
-			resp, err := apiClient.GetVaults(st.Auth.MasterPassword)
+			resp, err := apiClient.GetVaults(masterPassword)
 			if err != nil {
-				log.Printf("Failed to fetch vaults: %v", err)
-				// Might want to clear loaded flag to retry or show error
+				done <- state.VaultLoadResult{Err: err}
+				invalidate()
 				return
 			}
-			
+
 			// Map to state models
 			var newVaults []state.Vault
 			for _, v := range resp {
@@ -46,7 +69,7 @@ func handleVaultListPage(
 					Notes:    v.Notes,
 				})
 			}
-			st.Vaults = newVaults
+			done <- state.VaultLoadResult{Vaults: newVaults}
 			invalidate()
 		}()
 	}
@@ -54,9 +77,18 @@ func handleVaultListPage(
 	var action pages.VaultListAction
 	shell.Layout(gtx, th, st, "Vaults", func(gtx layout.Context) layout.Dimensions {
 		var d layout.Dimensions
-		d, action = page.Layout(gtx, th, st.Vaults)
+		d, action = page.Layout(gtx, th, st.Vaults, st.VaultsLoading, st.VaultsLoadError)
 		return d
 	})
+
+	if action.Retry {
+		st.VaultsLoaded = false
+		st.VaultsLoading = false
+		st.VaultsLoadError = ""
+		st.VaultsLoadDone = nil
+		invalidate()
+		return true
+	}
 
 	if action.Add {
 		st.Nav = state.NavVault
@@ -73,6 +105,9 @@ func handleVaultListPage(
 				log.Printf("Failed to delete vault: %v", err)
 			}
 			st.VaultsLoaded = false // Force reload
+			st.VaultsLoading = false
+			st.VaultsLoadError = ""
+			st.VaultsLoadDone = nil
 			invalidate()
 		}(action.DeleteID)
 		return true
@@ -104,5 +139,5 @@ func handleVaultListPage(
 		return true
 	}
 
-	return false
+	return st.VaultsLoading
 }

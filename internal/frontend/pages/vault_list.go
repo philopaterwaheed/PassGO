@@ -19,14 +19,16 @@ import (
 
 type VaultListAction struct {
 	Add      bool
+	Retry    bool
 	OpenID   string
 	EditID   string
 	DeleteID string
 }
 
 type VaultListPage struct {
-	AddBtn widget.Clickable
-	List   widget.List
+	AddBtn   widget.Clickable
+	RetryBtn widget.Clickable
+	List     widget.List
 
 	cardClicks   []widget.Clickable
 	editClicks   []widget.Clickable
@@ -41,11 +43,14 @@ func NewVaultListPage() *VaultListPage {
 	}
 }
 
-func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []state.Vault) (layout.Dimensions, VaultListAction) {
+func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []state.Vault, loading bool, loadError string) (layout.Dimensions, VaultListAction) {
 	var action VaultListAction
 
 	for p.AddBtn.Clicked(gtx) {
 		action.Add = true
+	}
+	for p.RetryBtn.Clicked(gtx) {
+		action.Retry = true
 	}
 
 	ensureClickables(&p.cardClicks, len(vaults))
@@ -82,6 +87,14 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 		}),
 		layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			if loading && len(vaults) == 0 {
+				return loadingState(gtx, th)
+			}
+
+			if loadError != "" && len(vaults) == 0 {
+				return loadErrorState(gtx, th, &p.RetryBtn, loadError)
+			}
+
 			if len(vaults) == 0 {
 				return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(520)))
@@ -107,6 +120,54 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 	)
 
 	return dims, action
+}
+
+func loadErrorState(gtx layout.Context, th *material.Theme, retryBtn *widget.Clickable, message string) layout.Dimensions {
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(520)))
+		return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				lbl := material.H6(th, "Could not load vaults")
+				lbl.Font.Weight = font.Bold
+				return lbl.Layout(gtx)
+			}),
+			layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				lbl := material.Body2(th, message)
+				c := th.Palette.Fg
+				c.A = 180
+				lbl.Color = c
+				return lbl.Layout(gtx)
+			}),
+			layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				btn := material.Button(th, retryBtn, "Retry")
+				btn.TextSize = unit.Sp(14)
+				return btn.Layout(gtx)
+			}),
+		)
+	})
+}
+
+func loadingState(gtx layout.Context, th *material.Theme) layout.Dimensions {
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				size := gtx.Dp(unit.Dp(36))
+				gtx.Constraints.Min = image.Pt(size, size)
+				gtx.Constraints.Max = image.Pt(size, size)
+				return material.Loader(th).Layout(gtx)
+			}),
+			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				lbl := material.Body1(th, "Loading vaults...")
+				c := th.Palette.Fg
+				c.A = 180
+				lbl.Color = c
+				return lbl.Layout(gtx)
+			}),
+		)
+	})
 }
 
 func ensureBools(dst *[]bool, n int) {
@@ -141,17 +202,17 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault, editBtn, delBtn
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						// Avatar circle
 						size := gtx.Dp(unit.Dp(48))
-						
+
 						initial := "?"
 						if len(v.Title) > 0 {
 							initial = strings.ToUpper(string(v.Title[0]))
 						}
-						
+
 						return layout.Stack{}.Layout(gtx,
 							layout.Expanded(func(gtx layout.Context) layout.Dimensions {
 								bounds := image.Rectangle{Max: image.Point{X: size, Y: size}}
 								defer clip.UniformRRect(bounds, size/2).Push(gtx.Ops).Pop()
-								
+
 								avatarBg := th.Palette.ContrastBg
 								avatarBg.A = 180
 								paint.Fill(gtx.Ops, avatarBg)
@@ -202,7 +263,7 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault, editBtn, delBtn
 								if v.Password == "" {
 									return layout.Dimensions{}
 								}
-								
+
 								txt := strings.Repeat("•", 10)
 								if isShowing {
 									txt = v.Password

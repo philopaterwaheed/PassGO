@@ -15,6 +15,7 @@
 
 			const go = new Go();
 			const wasmURL = new URL("main.wasm", window.location.href);
+			wasmURL.searchParams.set("v", Date.now().toString());
 			WebAssembly.instantiateStreaming(fetch(wasmURL.toString()), go.importObject).then((result) => {
 				go.run(result.instance);
 			});

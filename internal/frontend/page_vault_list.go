@@ -61,7 +61,36 @@ func handleVaultListPage(
 	if action.Add {
 		st.Nav = state.NavVault
 		st.Route = state.RouteVaultAdd
-		vaultAddPage.Reset()
+		vaultAddPage.Reset(nil)
+		invalidate()
+		return true
+	}
+
+	if action.DeleteID != "" {
+		go func(id string) {
+			err := apiClient.DeleteVault(id)
+			if err != nil {
+				log.Printf("Failed to delete vault: %v", err)
+			}
+			st.VaultsLoaded = false // Force reload
+			invalidate()
+		}(action.DeleteID)
+		return true
+	}
+
+	if action.EditID != "" {
+		st.SelectedVaultID = action.EditID
+		// finding the vault to pass to reset
+		var vToEdit *state.Vault
+		for _, v := range st.Vaults {
+			if v.ID == action.EditID {
+				vToEdit = &v
+				break
+			}
+		}
+		st.Nav = state.NavVault
+		st.Route = state.RouteVaultAdd
+		vaultAddPage.Reset(vToEdit)
 		invalidate()
 		return true
 	}

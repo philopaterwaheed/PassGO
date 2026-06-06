@@ -39,14 +39,34 @@ func handleVaultAddPage(
 		invalidate()
 
 		v := action.Vault
+		isEdit := page.EditingID != ""
+		if isEdit {
+			v.ID = page.EditingID
+		}
+
 		go func() {
-			resp, err := apiClient.CreateVault(st.Auth.MasterPassword, &api.VaultRequest{
-				Title:    v.Title,
-				Username: v.Username,
-				Password: v.Password,
-				URL:      v.URL,
-				Notes:    v.Notes,
-			})
+			var err error
+			if isEdit {
+				_, err = apiClient.UpdateVault(v.ID, st.Auth.MasterPassword, &api.VaultRequest{
+					Title:    v.Title,
+					Username: v.Username,
+					Password: v.Password,
+					URL:      v.URL,
+					Notes:    v.Notes,
+				})
+			} else {
+				var resp *api.VaultResponse
+				resp, err = apiClient.CreateVault(st.Auth.MasterPassword, &api.VaultRequest{
+					Title:    v.Title,
+					Username: v.Username,
+					Password: v.Password,
+					URL:      v.URL,
+					Notes:    v.Notes,
+				})
+				if resp != nil {
+					v.ID = resp.ID
+				}
+			}
 
 			if err != nil {
 				page.IsLoading = false
@@ -56,8 +76,17 @@ func handleVaultAddPage(
 			}
 
 			// Map response back to state vault
-			v.ID = resp.ID
-			st.AddVault(v)
+			if !isEdit {
+				st.AddVault(v)
+			} else {
+				// Update in state
+				for i, existing := range st.Vaults {
+					if existing.ID == v.ID {
+						st.Vaults[i] = v
+						break
+					}
+				}
+			}
 
 			page.IsLoading = false
 			st.SelectedVaultID = v.ID

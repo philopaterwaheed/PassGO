@@ -28,8 +28,12 @@ type VaultAddPage struct {
 	SaveBtn widget.Clickable
 	BackBtn widget.Clickable
 
+	ShowPasswordBtn widget.Clickable
+	ShowPassword    bool
+
 	ErrorMsg  string
 	IsLoading bool
+	EditingID string
 }
 
 func NewVaultAddPage() *VaultAddPage {
@@ -42,14 +46,26 @@ func NewVaultAddPage() *VaultAddPage {
 	}
 }
 
-func (p *VaultAddPage) Reset() {
-	p.TitleEd.SetText("")
-	p.UsernameEd.SetText("")
-	p.PasswordEd.SetText("")
-	p.URLEd.SetText("")
-	p.NotesEd.SetText("")
+func (p *VaultAddPage) Reset(v *state.Vault) {
+	if v != nil {
+		p.TitleEd.SetText(v.Title)
+		p.UsernameEd.SetText(v.Username)
+		p.PasswordEd.SetText(v.Password)
+		p.URLEd.SetText(v.URL)
+		p.NotesEd.SetText(v.Notes)
+		p.EditingID = v.ID
+	} else {
+		p.TitleEd.SetText("")
+		p.UsernameEd.SetText("")
+		p.PasswordEd.SetText("")
+		p.URLEd.SetText("")
+		p.NotesEd.SetText("")
+		p.EditingID = ""
+	}
 	p.ErrorMsg = ""
 	p.IsLoading = false
+	p.ShowPassword = false
+	p.PasswordEd.Mask = '*'
 }
 
 func (p *VaultAddPage) TryBuildVault() (state.Vault, bool) {
@@ -71,6 +87,15 @@ func (p *VaultAddPage) TryBuildVault() (state.Vault, bool) {
 
 func (p *VaultAddPage) Layout(gtx layout.Context, th *material.Theme) (layout.Dimensions, VaultAddAction) {
 	var action VaultAddAction
+
+	for p.ShowPasswordBtn.Clicked(gtx) {
+		p.ShowPassword = !p.ShowPassword
+		if p.ShowPassword {
+			p.PasswordEd.Mask = 0
+		} else {
+			p.PasswordEd.Mask = '*'
+		}
+	}
 
 	for p.SaveBtn.Clicked(gtx) {
 		v, ok := p.TryBuildVault()
@@ -107,9 +132,26 @@ func (p *VaultAddPage) Layout(gtx layout.Context, th *material.Theme) (layout.Di
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					e := material.Editor(th, &p.PasswordEd, "Password")
-					e.TextSize = unit.Sp(16)
-					return e.Layout(gtx)
+					return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							e := material.Editor(th, &p.PasswordEd, "Password")
+							e.TextSize = unit.Sp(16)
+							return e.Layout(gtx)
+						}),
+						layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							btnTxt := "Show"
+							if p.ShowPassword {
+								btnTxt = "Hide"
+							}
+							btn := material.Button(th, &p.ShowPasswordBtn, btnTxt)
+							btn.TextSize = unit.Sp(12)
+							btn.Inset = layout.UniformInset(unit.Dp(6))
+							btn.Background = th.Palette.ContrastBg
+							btn.Color = th.Palette.ContrastFg
+							return btn.Layout(gtx)
+						}),
+					)
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -129,8 +171,11 @@ func (p *VaultAddPage) Layout(gtx layout.Context, th *material.Theme) (layout.Di
 				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					btnText := "Add vault"
+					if p.EditingID != "" {
+						btnText = "Save changes"
+					}
 					if p.IsLoading {
-						btnText = "Adding..."
+						btnText = "Saving..."
 					}
 					gtx.Constraints.Min.X = gtx.Constraints.Max.X
 					btn := material.Button(th, &p.SaveBtn, btnText)

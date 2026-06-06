@@ -2,6 +2,7 @@ package pages
 
 import (
 	"image"
+	"image/color"
 	"strings"
 
 	"gioui.org/font"
@@ -17,15 +18,21 @@ import (
 )
 
 type VaultListAction struct {
-	Add    bool
-	OpenID string
+	Add      bool
+	OpenID   string
+	EditID   string
+	DeleteID string
 }
 
 type VaultListPage struct {
 	AddBtn widget.Clickable
 	List   widget.List
 
-	cardClicks []widget.Clickable
+	cardClicks   []widget.Clickable
+	editClicks   []widget.Clickable
+	deleteClicks []widget.Clickable
+	showClicks   []widget.Clickable
+	showPassword []bool
 }
 
 func NewVaultListPage() *VaultListPage {
@@ -42,8 +49,21 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 	}
 
 	ensureClickables(&p.cardClicks, len(vaults))
+	ensureClickables(&p.editClicks, len(vaults))
+	ensureClickables(&p.deleteClicks, len(vaults))
+	ensureClickables(&p.showClicks, len(vaults))
+	ensureBools(&p.showPassword, len(vaults))
 
 	for i := range vaults {
+		for p.showClicks[i].Clicked(gtx) {
+			p.showPassword[i] = !p.showPassword[i]
+		}
+		for p.deleteClicks[i].Clicked(gtx) {
+			action.DeleteID = vaults[i].ID
+		}
+		for p.editClicks[i].Clicked(gtx) {
+			action.EditID = vaults[i].ID
+		}
 		for p.cardClicks[i].Clicked(gtx) {
 			action.OpenID = vaults[i].ID
 		}
@@ -72,10 +92,14 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 			return p.List.Layout(gtx, len(vaults), func(gtx layout.Context, i int) layout.Dimensions {
 				v := vaults[i]
 				click := &p.cardClicks[i]
+				editClick := &p.editClicks[i]
+				deleteClick := &p.deleteClicks[i]
+				showClick := &p.showClicks[i]
+				isShowing := p.showPassword[i]
 
 				return layout.Inset{Bottom: unit.Dp(10)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return card(gtx, th, v)
+						return card(gtx, th, v, editClick, deleteClick, showClick, isShowing)
 					})
 				})
 			})
@@ -83,6 +107,15 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 	)
 
 	return dims, action
+}
+
+func ensureBools(dst *[]bool, n int) {
+	if len(*dst) >= n {
+		return
+	}
+	for i := len(*dst); i < n; i++ {
+		*dst = append(*dst, false)
+	}
 }
 
 func ensureClickables(dst *[]widget.Clickable, n int) {
@@ -94,7 +127,7 @@ func ensureClickables(dst *[]widget.Clickable, n int) {
 	}
 }
 
-func card(gtx layout.Context, th *material.Theme, v state.Vault) layout.Dimensions {
+func card(gtx layout.Context, th *material.Theme, v state.Vault, editBtn, delBtn, showBtn *widget.Clickable, isShowing bool) layout.Dimensions {
 	return layout.Inset{Top: unit.Dp(4), Bottom: unit.Dp(4), Left: unit.Dp(8), Right: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		radius := gtx.Dp(unit.Dp(16))
 
@@ -164,7 +197,56 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault) layout.Dimensio
 								lbl.Color = c
 								return lbl.Layout(gtx)
 							}),
+							layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								if v.Password == "" {
+									return layout.Dimensions{}
+								}
+								
+								txt := strings.Repeat("•", 10)
+								if isShowing {
+									txt = v.Password
+								}
+
+								return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+									layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+										lbl := material.Body2(th, txt)
+										return lbl.Layout(gtx)
+									}),
+									layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
+									layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+										btnTxt := "Show"
+										if isShowing {
+											btnTxt = "Hide"
+										}
+										btn := material.Button(th, showBtn, btnTxt)
+										btn.TextSize = unit.Sp(10)
+										btn.Inset = layout.UniformInset(unit.Dp(4))
+										btn.Background = th.Palette.ContrastBg
+										btn.Color = th.Palette.ContrastFg
+										return btn.Layout(gtx)
+									}),
+								)
+							}),
 						)
+					}),
+					layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						btn := material.Button(th, editBtn, "Edit")
+						btn.Background = color.NRGBA{R: 50, G: 150, B: 200, A: 255}
+						btn.Color = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
+						btn.Inset = layout.UniformInset(unit.Dp(8))
+						btn.TextSize = unit.Sp(12)
+						return btn.Layout(gtx)
+					}),
+					layout.Rigid(layout.Spacer{Width: unit.Dp(4)}.Layout),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						btn := material.Button(th, delBtn, "Delete")
+						btn.Background = color.NRGBA{R: 200, G: 50, B: 50, A: 255}
+						btn.Color = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
+						btn.Inset = layout.UniformInset(unit.Dp(8))
+						btn.TextSize = unit.Sp(12)
+						return btn.Layout(gtx)
 					}),
 				)
 			})

@@ -153,7 +153,7 @@ func loop(w *app.Window) error {
 				handleWelcomePage(gtx, th, st, welcomePage)
 			}
 
-			if invalidate || runtime.GOOS == "js" {
+			if invalidate {
 				gtx.Execute(op.InvalidateCmd{})
 			}
 			e.Frame(gtx.Ops)

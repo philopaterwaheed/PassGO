@@ -23,6 +23,7 @@ import (
 
 // Run starts the Gio desktop/web application
 func Run() {
+	log.Printf("PassGO frontend starting on %s/%s", runtime.GOOS, runtime.GOARCH)
 	go func() {
 		w := new(app.Window)
 		// Desktop gets a sensible default size; mobile/web will size the surface.
@@ -37,12 +38,14 @@ func Run() {
 		if err := loop(w); err != nil {
 			log.Fatal(err)
 		}
+		log.Printf("PassGO frontend stopped")
 		os.Exit(0)
 	}()
 	app.Main()
 }
 
 func loop(w *app.Window) error {
+	log.Printf("PassGO frontend initializing")
 	// Best-effort: make local desktop/mobile runs pick up .env without requiring
 	// manual exporting. (On WASM it will typically just fail and be ignored.)
 	_ = godotenv.Load()
@@ -73,6 +76,7 @@ func loop(w *app.Window) error {
 	sessionStore := storage.NewSessionStore()
 
 	if sess, err := sessionStore.Load(); err == nil && sess.Token != "" {
+		log.Printf("PassGO restored saved session")
 		st.Auth.Token = sess.Token
 		st.Auth.Email = sess.Email
 		st.Auth.MasterPassword = ""
@@ -98,11 +102,16 @@ func loop(w *app.Window) error {
 		}()
 	}
 
+	firstFrame := true
 	for {
 		switch e := w.Event().(type) {
 		case app.DestroyEvent:
 			return e.Err
 		case app.FrameEvent:
+			if firstFrame {
+				log.Printf("PassGO drawing first frame")
+				firstFrame = false
+			}
 			gtx := app.NewContext(&ops, e)
 			invalidate := false
 			invalidateFunc := func() {

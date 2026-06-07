@@ -6,6 +6,21 @@
 		<title>PassGO</title>
 		<script src="wasm_exec.js"></script>
 		<script>
+			function showError(error) {
+				const message = error && error.message ? error.message : String(error);
+				document.body.textContent = "";
+				const status = document.createElement("main");
+				const title = document.createElement("h1");
+				const text = document.createElement("p");
+				const detail = document.createElement("pre");
+				status.className = "status";
+				title.textContent = "PassGO";
+				text.textContent = "Could not start the app.";
+				detail.textContent = message;
+				status.append(title, text, detail);
+				document.body.append(status);
+			}
+
 			if (!WebAssembly.instantiateStreaming) { // polyfill
 				WebAssembly.instantiateStreaming = async (resp, importObject) => {
 					const source = await (await resp).arrayBuffer();
@@ -17,8 +32,9 @@
 			const wasmURL = new URL("main.wasm", window.location.href);
 			wasmURL.searchParams.set("v", Date.now().toString());
 			WebAssembly.instantiateStreaming(fetch(wasmURL.toString()), go.importObject).then((result) => {
+				document.body.textContent = "";
 				go.run(result.instance);
-			});
+			}).catch(showError);
 		</script>
         <style>
             html,
@@ -27,11 +43,45 @@
                 padding: 0;
                 width: 100%;
                 height: 100%;
-                background-color: #f0f0f0;
+                background-color: #1e2629;
+                color: #ecf6ff;
+                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
                 overflow: hidden;
                 touch-action: manipulation;
             }
+
+			.status {
+				box-sizing: border-box;
+				display: grid;
+				min-height: 100%;
+				place-content: center;
+				gap: 10px;
+				padding: 24px;
+				text-align: center;
+			}
+
+			.status h1,
+			.status p {
+				margin: 0;
+			}
+
+			.status h1 {
+				color: #add8e6;
+				font-size: 32px;
+			}
+
+			.status pre {
+				box-sizing: border-box;
+				max-width: min(680px, 100vw - 48px);
+				overflow: auto;
+				border-radius: 8px;
+				background: rgba(255, 255, 255, 0.08);
+				padding: 12px;
+				color: #ecf6ff;
+				text-align: left;
+				white-space: pre-wrap;
+			}
         </style>
 	</head>
-	<body></body>
+	<body><main class="status"><h1>PassGO</h1><p>Loading...</p></main></body>
 </html>

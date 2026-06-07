@@ -83,10 +83,12 @@ jobs:
         run: |
           mkdir -p dist
           ext=""
+          ldflags=""
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             ext=".exe"
+            ldflags="-H=windowsgui"
           fi
-          go build -o "dist/passgo-frontend-${{ runner.os }}${ext}" ./cmd/frontend
+          go build -ldflags="${ldflags}" -o "dist/passgo-frontend-${{ runner.os }}${ext}" ./cmd/frontend
       - name: Upload desktop artifact
         uses: actions/upload-artifact@v4
         with:
@@ -121,17 +123,17 @@ jobs:
             "ndk;25.2.9519653"
       - name: Install Gio build tools
         run: |
-          go install gioui.org/cmd/gogio@latest
+          go install gioui.org/cmd/gogio@v0.10.0
           go install golang.org/x/mobile/cmd/gomobile@latest
           gomobile init
       - name: Build Android APK
         run: |
           mkdir -p dist
-          gogio -target android -o dist/passgo-frontend-android.apk ./cmd/frontend
+          gogio -target android -arch arm64 -appid com.philopaterwaheed.passgo -version 1.0.0.1 -minsdk 23 -targetsdk 34 -o dist/passgo-frontend-android.apk ./cmd/frontend
       - name: Build iOS app
         run: |
           mkdir -p dist
-          gogio -target ios -o dist/passgo-frontend-ios.app ./cmd/frontend
+          gogio -target ios -appid com.philopaterwaheed.passgo -version 1.0.0.1 -minsdk 15 -o dist/passgo-frontend-ios.app ./cmd/frontend
       - name: Upload mobile artifacts
         uses: actions/upload-artifact@v4
         with:

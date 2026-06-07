@@ -23,7 +23,7 @@ import (
 
 // Run starts the Gio desktop/web application
 func Run() {
-	log.Printf("PassGO frontend starting on %s/%s", runtime.GOOS, runtime.GOARCH)
+	log.Printf("passGo starting on %s/%s", runtime.GOOS, runtime.GOARCH)
 	go func() {
 		w := new(app.Window)
 		// Desktop gets a sensible default size; mobile/web will size the surface.
@@ -38,14 +38,14 @@ func Run() {
 		if err := loop(w); err != nil {
 			log.Fatal(err)
 		}
-		log.Printf("PassGO frontend stopped")
+		log.Printf("passGo stopped")
 		os.Exit(0)
 	}()
 	app.Main()
 }
 
 func loop(w *app.Window) error {
-	log.Printf("PassGO frontend initializing")
+	log.Printf("passGo initializing")
 	// Best-effort: make local desktop/mobile runs pick up .env without requiring
 	// manual exporting. (On WASM it will typically just fail and be ignored.)
 	_ = godotenv.Load()

@@ -44,7 +44,7 @@ go build -o passgo-backend ./cmd/backend
 #### Frontend
 
 ```bash
-go build -o passgo-frontend ./cmd/frontend
+go build -o passGo ./cmd/frontend
 ```
 
 Configuration:
@@ -67,7 +67,7 @@ Available endpoints:
 #### Frontend Application
 
 ```bash
-./passgo-frontend
+./passGo
 ```
 
 Linux note: Gio desktop builds require system libraries (for example `libxkbcommon-dev` and Wayland/X11 dev packages) depending on your distro/window system.

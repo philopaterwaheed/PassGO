@@ -1,4 +1,4 @@
-name: build-frontend
+name: build-passgo
 
 on:
   push:
@@ -29,11 +29,13 @@ jobs:
       - name: Upload web artifact
         uses: actions/upload-artifact@v4
         with:
-          name: passgo-frontend-web
+          name: passGo-web
           path: |
             web/index.html
             web/wasm_exec.js
             web/main.wasm
+            web/passGo_logo.svg
+            web/appicon.png
 
   desktop:
     name: Desktop (${{ matrix.os }})
@@ -82,17 +84,28 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          ext=""
-          ldflags=""
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-            ext=".exe"
-            ldflags="-H=windowsgui"
+            go install gioui.org/cmd/gogio@v0.10.0
+            gogio -target windows -appid com.philopaterwaheed.passgo -name passGo -version 1.0.0.1 -o dist/passGo.exe ./cmd/frontend
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            go install gioui.org/cmd/gogio@v0.10.0
+            gogio -target macos -appid com.philopaterwaheed.passgo -name passGo -version 1.0.0.1 -o dist/passGo.app ./cmd/frontend
+          else
+            go build -o dist/passGo ./cmd/frontend
+            cp cmd/frontend/appicon.png dist/passGo.png
+            cat > dist/passGo.desktop <<'EOF'
+          [Desktop Entry]
+          Type=Application
+          Name=passGo
+          Exec=passGo
+          Icon=passGo
+          Categories=Utility;
+          EOF
           fi
-          go build -ldflags="${ldflags}" -o "dist/passgo-frontend-${{ runner.os }}${ext}" ./cmd/frontend
       - name: Upload desktop artifact
         uses: actions/upload-artifact@v4
         with:
-          name: passgo-frontend-desktop-${{ runner.os }}
+          name: passGo-desktop-${{ runner.os }}
           path: dist/
 
   mobile:
@@ -129,15 +142,15 @@ jobs:
       - name: Build Android APK
         run: |
           mkdir -p dist
-          gogio -target android -arch arm64 -appid com.philopaterwaheed.passgo -version 1.0.0.1 -minsdk 23 -targetsdk 34 -o dist/passgo-frontend-android.apk ./cmd/frontend
+          gogio -target android -arch arm64 -appid com.philopaterwaheed.passgo -name passGo -version 1.0.0.1 -minsdk 23 -targetsdk 34 -o dist/passGo.apk ./cmd/frontend
       - name: Build iOS app
         run: |
           mkdir -p dist
-          gogio -target ios -appid com.philopaterwaheed.passgo -version 1.0.0.1 -minsdk 15 -o dist/passgo-frontend-ios.app ./cmd/frontend
+          gogio -target ios -appid com.philopaterwaheed.passgo -name passGo -version 1.0.0.1 -minsdk 15 -o dist/passGo.app ./cmd/frontend
       - name: Upload mobile artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: passgo-frontend-mobile
+          name: passGo-mobile
           path: dist/
 
   release:
@@ -157,7 +170,7 @@ jobs:
         shell: bash
         run: |
           cd release
-          for dir in passgo-frontend-*; do
+          for dir in passGo-*; do
             if [[ -d "$dir" ]]; then
               zip -r "${dir}.zip" "$dir"
             fi
@@ -167,5 +180,5 @@ jobs:
         with:
           files: |
             release/*.zip
-            release/**/passgo-frontend-*
+            release/**/passGo*
           generate_release_notes: true

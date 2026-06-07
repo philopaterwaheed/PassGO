@@ -3,4 +3,5 @@ build-web:
 
 build-windows:
 	mkdir -p dist
-	GOOS=windows GOARCH=amd64 go build -ldflags="-H=windowsgui" -o dist/passgo-frontend-windows.exe ./cmd/frontend
+	go install gioui.org/cmd/gogio@v0.10.0
+	gogio -target windows -appid com.philopaterwaheed.passgo -name passGo -version 1.0.0.1 -o dist/passGo.exe ./cmd/frontend

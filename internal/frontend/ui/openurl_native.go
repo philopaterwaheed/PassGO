@@ -1,4 +1,4 @@
-//go:build !js
+//go:build !js && !android && !ios
 
 package ui
 
@@ -8,6 +8,11 @@ import (
 )
 
 func OpenURL(url string) error {
+	url = NormalizeURL(url)
+	if url == "" {
+		return nil
+	}
+
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin":

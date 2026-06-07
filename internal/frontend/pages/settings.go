@@ -74,16 +74,16 @@ func (p *SettingsPage) Layout(gtx layout.Context, th *material.Theme, email stri
 		action.ConfirmMasterPassword = p.ConfirmMasterPasswordInput.Text()
 	}
 	for p.GitHubBtn.Clicked(gtx) {
-		_ = ui.OpenURL(ui.GitHubURL)
+		ui.OpenURLLogged(ui.GitHubURL)
 	}
 	for p.LinkedInBtn.Clicked(gtx) {
-		_ = ui.OpenURL(ui.LinkedInURL)
+		ui.OpenURLLogged(ui.LinkedInURL)
 	}
 	for p.PortfolioBtn.Clicked(gtx) {
-		_ = ui.OpenURL(ui.PortfolioURL)
+		ui.OpenURLLogged(ui.PortfolioURL)
 	}
 	for p.CVBtn.Clicked(gtx) {
-		_ = ui.OpenURL(ui.CVURL)
+		ui.OpenURLLogged(ui.CVURL)
 	}
 
 	dims := layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {

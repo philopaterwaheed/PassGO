@@ -24,16 +24,16 @@ func NewWelcomePage() *WelcomePage {
 
 func (p *WelcomePage) Layout(gtx layout.Context, th *material.Theme) layout.Dimensions {
 	for p.GitHubBtn.Clicked(gtx) {
-		_ = ui.OpenURL(ui.GitHubURL)
+		ui.OpenURLLogged(ui.GitHubURL)
 	}
 	for p.LinkedInBtn.Clicked(gtx) {
-		_ = ui.OpenURL(ui.LinkedInURL)
+		ui.OpenURLLogged(ui.LinkedInURL)
 	}
 	for p.PortfolioBtn.Clicked(gtx) {
-		_ = ui.OpenURL(ui.PortfolioURL)
+		ui.OpenURLLogged(ui.PortfolioURL)
 	}
 	for p.CVBtn.Clicked(gtx) {
-		_ = ui.OpenURL(ui.CVURL)
+		ui.OpenURLLogged(ui.CVURL)
 	}
 
 	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -82,6 +82,27 @@ func (p *WelcomePage) creditBlock(th *material.Theme) layout.Widget {
 }
 
 func creditLinks(gtx layout.Context, th *material.Theme, githubBtn, linkedInBtn, portfolioBtn, cvBtn *widget.Clickable) layout.Dimensions {
+	if ui.IsCompact(gtx) {
+		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(300)))
+			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return creditLinkRow(gtx, th,
+						creditLink{click: githubBtn, icon: "GH", label: "GitHub"},
+						creditLink{click: linkedInBtn, icon: "IN", label: "LinkedIn"},
+					)
+				}),
+				layout.Rigid(layout.Spacer{Height: unit.Dp(6)}.Layout),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return creditLinkRow(gtx, th,
+						creditLink{click: portfolioBtn, icon: "PF", label: "Portfolio"},
+						creditLink{click: cvBtn, icon: "CV", label: "Resume"},
+					)
+				}),
+			)
+		})
+	}
+
 	row := func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(360)))
 		gtx.Constraints.Min.X = gtx.Constraints.Max.X
@@ -110,6 +131,26 @@ func creditLinks(gtx layout.Context, th *material.Theme, githubBtn, linkedInBtn,
 	}
 
 	return layout.Center.Layout(gtx, row)
+}
+
+type creditLink struct {
+	click *widget.Clickable
+	icon  string
+	label string
+}
+
+func creditLinkRow(gtx layout.Context, th *material.Theme, left, right creditLink) layout.Dimensions {
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return ui.CompactLinkButton(gtx, th, left.click, left.icon, left.label)
+			}),
+			layout.Rigid(layout.Spacer{Width: unit.Dp(10)}.Layout),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return ui.CompactLinkButton(gtx, th, right.click, right.icon, right.label)
+			}),
+		)
+	})
 }
 
 func min(a, b int) int {

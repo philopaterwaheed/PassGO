@@ -36,11 +36,13 @@ type VaultListPage struct {
 	List                widget.List
 	UnlockError         string
 
-	cardClicks   []widget.Clickable
-	editClicks   []widget.Clickable
-	deleteClicks []widget.Clickable
-	showClicks   []widget.Clickable
-	showPassword []bool
+	cardClicks    []widget.Clickable
+	editClicks    []widget.Clickable
+	deleteClicks  []widget.Clickable
+	showClicks    []widget.Clickable
+	urlClicks     []widget.Clickable
+	urlOpenClicks []widget.Clickable
+	showPassword  []bool
 }
 
 func NewVaultListPage() *VaultListPage {
@@ -76,6 +78,8 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 	ensureClickables(&p.editClicks, len(vaults))
 	ensureClickables(&p.deleteClicks, len(vaults))
 	ensureClickables(&p.showClicks, len(vaults))
+	ensureClickables(&p.urlClicks, len(vaults))
+	ensureClickables(&p.urlOpenClicks, len(vaults))
 	ensureBools(&p.showPassword, len(vaults))
 
 	for i := range vaults {
@@ -90,6 +94,16 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 		}
 		for p.cardClicks[i].Clicked(gtx) {
 			action.OpenID = vaults[i].ID
+		}
+		for p.urlClicks[i].Clicked(gtx) {
+			if url := ui.NormalizeURL(vaults[i].URL); url != "" {
+				ui.OpenURLLogged(url)
+			}
+		}
+		for p.urlOpenClicks[i].Clicked(gtx) {
+			if url := ui.NormalizeURL(vaults[i].URL); url != "" {
+				ui.OpenURLLogged(url)
+			}
 		}
 	}
 
@@ -125,10 +139,12 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 				editClick := &p.editClicks[i]
 				deleteClick := &p.deleteClicks[i]
 				showClick := &p.showClicks[i]
+				urlClick := &p.urlClicks[i]
+				urlOpenClick := &p.urlOpenClicks[i]
 				isShowing := p.showPassword[i]
 
 				return layout.Inset{Bottom: unit.Dp(10)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return card(gtx, th, v, click, editClick, deleteClick, showClick, isShowing)
+					return card(gtx, th, v, click, editClick, deleteClick, showClick, urlClick, urlOpenClick, isShowing)
 				})
 			})
 		}),
@@ -240,7 +256,7 @@ func ensureClickables(dst *[]widget.Clickable, n int) {
 	}
 }
 
-func card(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, editBtn, delBtn, showBtn *widget.Clickable, isShowing bool) layout.Dimensions {
+func card(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, editBtn, delBtn, showBtn, urlBtn, urlOpenBtn *widget.Clickable, isShowing bool) layout.Dimensions {
 	return layout.Inset{Top: unit.Dp(4), Bottom: unit.Dp(4), Left: unit.Dp(8), Right: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		radius := gtx.Dp(ui.RadiusLarge)
 
@@ -250,13 +266,25 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, editBt
 		content := func(gtx layout.Context) layout.Dimensions {
 			return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				mainRow := func(gtx layout.Context) layout.Dimensions {
-					return vaultSummary(gtx, th, v, openBtn, showBtn, isShowing)
+					return vaultSummary(gtx, th, v, openBtn, showBtn, urlBtn, isShowing)
 				}
 
 				actions := func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
 						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							return layout.Dimensions{}
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							if v.URL == "" {
+								return layout.Dimensions{}
+							}
+							return ui.SecondaryButton(gtx, th, urlOpenBtn, "Open")
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							if v.URL == "" {
+								return layout.Dimensions{}
+							}
+							return layout.Spacer{Width: unit.Dp(6)}.Layout(gtx)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return ui.SecondaryButton(gtx, th, editBtn, "Edit")
@@ -341,7 +369,7 @@ func vaultAvatar(gtx layout.Context, th *material.Theme, title string) layout.Di
 	)
 }
 
-func vaultSummary(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, showBtn *widget.Clickable, isShowing bool) layout.Dimensions {
+func vaultSummary(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, showBtn, urlBtn *widget.Clickable, isShowing bool) layout.Dimensions {
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return openBtn.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -354,6 +382,22 @@ func vaultSummary(gtx layout.Context, th *material.Theme, v state.Vault, openBtn
 						return vaultIdentity(gtx, th, v)
 					}),
 				)
+			})
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			if v.URL == "" {
+				return layout.Dimensions{}
+			}
+			return layout.Inset{Top: unit.Dp(4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return urlBtn.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					gtx.Constraints.Min.X = gtx.Constraints.Max.X
+					gtx.Constraints.Min.Y = max(gtx.Constraints.Min.Y, gtx.Dp(unit.Dp(44)))
+					return layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						lbl := material.Caption(th, v.URL)
+						lbl.Color = th.Palette.ContrastBg
+						return lbl.Layout(gtx)
+					})
+				})
 			})
 		}),
 		layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
@@ -398,14 +442,6 @@ func vaultIdentity(gtx layout.Context, th *material.Theme, v state.Vault) layout
 				return layout.Dimensions{}
 			}
 			lbl := material.Body2(th, v.Username)
-			lbl.Color = ui.MutedColor
-			return lbl.Layout(gtx)
-		}),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			if v.URL == "" {
-				return layout.Dimensions{}
-			}
-			lbl := material.Caption(th, v.URL)
 			lbl.Color = ui.MutedColor
 			return lbl.Layout(gtx)
 		}),

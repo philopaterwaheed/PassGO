@@ -88,35 +88,42 @@ func GhostButton(gtx layout.Context, th *material.Theme, click *widget.Clickable
 }
 
 func LinkButton(gtx layout.Context, th *material.Theme, click *widget.Clickable, icon string, label string) layout.Dimensions {
-	return linkButton(gtx, th, click, icon, label, unit.Dp(148), layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8), Left: unit.Dp(8), Right: unit.Dp(8)})
+	return linkButton(gtx, th, click, icon, label, unit.Dp(78), layout.Inset{Top: unit.Dp(6), Bottom: unit.Dp(6), Left: unit.Dp(8), Right: unit.Dp(8)})
 }
 
 func CompactLinkButton(gtx layout.Context, th *material.Theme, click *widget.Clickable, icon string, label string) layout.Dimensions {
-	return linkButton(gtx, th, click, icon, label, unit.Dp(124), layout.Inset{Top: unit.Dp(7), Bottom: unit.Dp(7), Left: unit.Dp(8), Right: unit.Dp(8)})
+	return linkButton(gtx, th, click, icon, label, unit.Dp(102), layout.Inset{Top: unit.Dp(6), Bottom: unit.Dp(6), Left: unit.Dp(8), Right: unit.Dp(8)})
 }
 
 func linkButton(gtx layout.Context, th *material.Theme, click *widget.Clickable, icon string, label string, minWidth unit.Dp, inset layout.Inset) layout.Dimensions {
-	return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		gtx.Constraints.Min.Y = maxInt(gtx.Constraints.Min.Y, gtx.Dp(unit.Dp(44)))
-		if uiWidth := gtx.Dp(minWidth); gtx.Constraints.Max.X >= uiWidth {
-			gtx.Constraints.Min.X = maxInt(gtx.Constraints.Min.X, uiWidth)
-		}
-		return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						lbl := material.Caption(th, icon)
-						lbl.Color = th.Palette.ContrastBg
-						lbl.Font.Weight = font.Bold
-						return lbl.Layout(gtx)
-					}),
-					layout.Rigid(layout.Spacer{Width: unit.Dp(4)}.Layout),
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						lbl := material.Caption(th, label)
-						lbl.Color = th.Palette.ContrastBg
-						return lbl.Layout(gtx)
-					}),
-				)
+	bg := color.NRGBA{}
+	if click.Hovered() || click.Pressed() {
+		bg = SurfaceAltColor
+	}
+
+	return surface(gtx, bg, BorderColor, RadiusSmall, unit.Dp(1), func(gtx layout.Context) layout.Dimensions {
+		return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min.Y = maxInt(gtx.Constraints.Min.Y, gtx.Dp(unit.Dp(34)))
+			if uiWidth := gtx.Dp(minWidth); gtx.Constraints.Max.X >= uiWidth {
+				gtx.Constraints.Min.X = maxInt(gtx.Constraints.Min.X, uiWidth)
+			}
+			return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							lbl := material.Caption(th, icon)
+							lbl.Color = th.Palette.ContrastBg
+							lbl.Font.Weight = font.Bold
+							return lbl.Layout(gtx)
+						}),
+						layout.Rigid(layout.Spacer{Width: unit.Dp(4)}.Layout),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							lbl := material.Caption(th, label)
+							lbl.Color = th.Palette.Fg
+							return lbl.Layout(gtx)
+						}),
+					)
+				})
 			})
 		})
 	})

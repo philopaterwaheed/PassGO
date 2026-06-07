@@ -82,10 +82,12 @@ func (p *WelcomePage) creditBlock(th *material.Theme) layout.Widget {
 }
 
 func creditLinks(gtx layout.Context, th *material.Theme, githubBtn, linkedInBtn, portfolioBtn, cvBtn *widget.Clickable) layout.Dimensions {
+	gtx.Constraints.Min.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(440)))
+
 	if ui.IsCompact(gtx) {
 		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(300)))
-			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return creditLinkRow(gtx, th,
 						creditLink{click: githubBtn, icon: "GH", label: "GitHub"},
@@ -106,28 +108,25 @@ func creditLinks(gtx layout.Context, th *material.Theme, githubBtn, linkedInBtn,
 	row := func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(360)))
 		gtx.Constraints.Min.X = gtx.Constraints.Max.X
-		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return ui.LinkButton(gtx, th, githubBtn, "GH", "GitHub")
-				})
-			}),
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				}),
+				layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return ui.LinkButton(gtx, th, linkedInBtn, "IN", "LinkedIn")
-				})
-			}),
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				}),
+				layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return ui.LinkButton(gtx, th, portfolioBtn, "PF", "Portfolio")
-				})
-			}),
-			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				}),
+				layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return ui.LinkButton(gtx, th, cvBtn, "CV", "Resume")
-				})
-			}),
-		)
+				}),
+			)
+		})
 	}
 
 	return layout.Center.Layout(gtx, row)

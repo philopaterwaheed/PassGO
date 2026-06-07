@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/philopaterwaheed/passGO/internal/backend/auth"
+	"github.com/philopaterwaheed/passGO/internal/backend/crypto"
 	"github.com/philopaterwaheed/passGO/internal/backend/database"
 	"github.com/philopaterwaheed/passGO/internal/backend/models"
 )
@@ -59,10 +61,29 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 		return
 	}
 
-	// Create user in local database
+	masterSalt, err := crypto.GenerateSalt()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create vault key"})
+		return
+	}
+	vaultKey, err := crypto.GenerateVaultKey()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create vault key"})
+		return
+	}
+	masterKey := crypto.DeriveMasterKey(req.MasterPassword, masterSalt)
+	wrappedVaultKey, err := crypto.WrapVaultKey(vaultKey, masterKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to protect vault key"})
+		return
+	}
+
+	// Create user in database
 	user := &models.User{
 		Email:         req.Email,
 		SupabaseUID:   supabaseResp.User.ID,
+		MasterSalt:    base64.StdEncoding.EncodeToString(masterSalt),
+		VaultKey:      wrappedVaultKey,
 		EmailVerified: false,
 	}
 

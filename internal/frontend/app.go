@@ -75,7 +75,7 @@ func loop(w *app.Window) error {
 	if sess, err := sessionStore.Load(); err == nil && sess.Token != "" {
 		st.Auth.Token = sess.Token
 		st.Auth.Email = sess.Email
-		st.Auth.MasterPassword = sess.MasterPassword
+		st.Auth.MasterPassword = ""
 		apiClient.Token = sess.Token
 		st.Nav = state.NavVault
 		st.Route = state.RouteVaultList
@@ -93,7 +93,7 @@ func loop(w *app.Window) error {
 			}
 
 			st.Auth.Email = user.Email
-			_ = sessionStore.Save(storage.Session{Token: st.Auth.Token, Email: st.Auth.Email, MasterPassword: st.Auth.MasterPassword})
+			_ = sessionStore.Save(storage.Session{Token: st.Auth.Token, Email: st.Auth.Email})
 			w.Invalidate()
 		}()
 	}
@@ -149,7 +149,7 @@ func loop(w *app.Window) error {
 			case state.RouteVaultDetail:
 				invalidate = handleVaultDetailPage(gtx, th, st, shell, vaultDetailPage, apiClient, invalidateFunc)
 			case state.RouteSettings:
-				invalidate = handleSettingsPage(gtx, th, st, shell, settingsPage, apiBaseURL, invalidateFunc)
+				invalidate = handleSettingsPage(gtx, th, st, shell, settingsPage, apiClient, apiBaseURL, invalidateFunc)
 			case state.RouteWelcome:
 				fallthrough
 			default:

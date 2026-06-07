@@ -29,8 +29,10 @@ func handleRegisterPage(
 		email := page.EmailInput.Text()
 		password := page.PasswordInput.Text()
 		confirmPassword := page.ConfirmPasswordInput.Text()
+		masterPassword := page.MasterPasswordInput.Text()
+		confirmMasterPassword := page.ConfirmMasterPasswordInput.Text()
 
-		if email == "" || password == "" || confirmPassword == "" {
+		if email == "" || password == "" || confirmPassword == "" || masterPassword == "" || confirmMasterPassword == "" {
 			page.ErrorMsg = "All fields are required"
 		} else if !strings.Contains(email, "@") {
 			page.ErrorMsg = "Invalid email address"
@@ -38,13 +40,17 @@ func handleRegisterPage(
 			page.ErrorMsg = "Password must be at least 8 characters"
 		} else if password != confirmPassword {
 			page.ErrorMsg = "Passwords do not match"
+		} else if len(masterPassword) < 8 {
+			page.ErrorMsg = "Master password must be at least 8 characters"
+		} else if masterPassword != confirmMasterPassword {
+			page.ErrorMsg = "Master passwords do not match"
 		} else {
 			page.IsLoading = true
 			page.ErrorMsg = ""
 			page.SuccessMsg = ""
 
 			go func() {
-				resp, err := apiClient.Signup(email, password)
+				resp, err := apiClient.Signup(email, password, masterPassword)
 				if err != nil {
 					page.ErrorMsg = err.Error()
 					page.IsLoading = false
@@ -59,6 +65,8 @@ func handleRegisterPage(
 				page.IsLoading = false
 				page.PasswordInput.SetText("")
 				page.ConfirmPasswordInput.SetText("")
+				page.MasterPasswordInput.SetText("")
+				page.ConfirmMasterPasswordInput.SetText("")
 				log.Printf("Registered successfully: %+v", resp.User)
 				invalidate()
 			}()

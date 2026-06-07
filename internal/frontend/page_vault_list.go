@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"log"
+	"strings"
 
 	"gioui.org/layout"
 	"gioui.org/widget/material"
@@ -31,17 +32,25 @@ func handleVaultListPage(
 			if result.Err != nil {
 				log.Printf("Failed to fetch vaults: %v", result.Err)
 				st.VaultsLoadError = result.Err.Error()
+				if strings.Contains(strings.ToLower(result.Err.Error()), "master password") {
+					st.Auth.MasterPassword = ""
+					page.UnlockError = result.Err.Error()
+					page.MasterPasswordInput.SetText("")
+					st.VaultsLoadError = ""
+				}
 				st.VaultsLoaded = true
 			} else {
 				st.Vaults = result.Vaults
 				st.VaultsLoadError = ""
 				st.VaultsLoaded = true
+				page.UnlockError = ""
+				page.MasterPasswordInput.SetText("")
 			}
 		default:
 		}
 	}
 
-	// Automatically fetch vaults once
+	// Automatically fetch vaults once the vault has been unlocked.
 	if !st.VaultsLoaded && !st.VaultsLoading && st.Auth.MasterPassword != "" {
 		st.VaultsLoading = true
 		st.VaultsLoadError = ""
@@ -77,9 +86,25 @@ func handleVaultListPage(
 	var action pages.VaultListAction
 	shell.Layout(gtx, th, st, "Vaults", func(gtx layout.Context) layout.Dimensions {
 		var d layout.Dimensions
-		d, action = page.Layout(gtx, th, st.Vaults, st.VaultsLoading, st.VaultsLoadError)
+		d, action = page.Layout(gtx, th, st.Vaults, st.VaultsLoading, st.VaultsLoadError, st.Auth.MasterPassword == "")
 		return d
 	})
+
+	if action.Unlock {
+		if action.UnlockPassword == "" {
+			page.UnlockError = "Master password is required"
+			invalidate()
+			return true
+		}
+		st.Auth.MasterPassword = action.UnlockPassword
+		page.UnlockError = ""
+		st.VaultsLoaded = false
+		st.VaultsLoading = false
+		st.VaultsLoadError = ""
+		st.VaultsLoadDone = nil
+		invalidate()
+		return true
+	}
 
 	if action.Retry {
 		st.VaultsLoaded = false

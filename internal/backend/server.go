@@ -116,6 +116,7 @@ func SetupRouter() *gin.Engine {
 		{
 			vaultsGroup.POST("", vaultHandler.CreateVault)
 			vaultsGroup.GET("", vaultHandler.GetVaults)
+			vaultsGroup.PUT("/master-password", vaultHandler.UpdateMasterPassword)
 			vaultsGroup.GET("/:id", vaultHandler.GetVault)
 			vaultsGroup.PUT("/:id", vaultHandler.UpdateVault)
 			vaultsGroup.DELETE("/:id", vaultHandler.DeleteVault)

@@ -54,13 +54,13 @@ func handleLoginPage(
 
 				st.Auth.Token = resp.Token
 				st.Auth.Email = resp.User.Email
-				st.Auth.MasterPassword = password
+				st.Auth.MasterPassword = ""
 				st.Vaults = nil
 				st.VaultsLoaded = false
 				st.VaultsLoading = false
 				st.VaultsLoadError = ""
 				st.VaultsLoadDone = nil
-				_ = sessionStore.Save(storage.Session{Token: resp.Token, Email: resp.User.Email, MasterPassword: password})
+				_ = sessionStore.Save(storage.Session{Token: resp.Token, Email: resp.User.Email})
 				page.SuccessMsg = "Welcome, " + resp.User.Email
 				page.IsLoading = false
 				st.Nav = state.NavVault

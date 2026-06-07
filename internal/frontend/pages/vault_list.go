@@ -18,17 +18,22 @@ import (
 )
 
 type VaultListAction struct {
-	Add      bool
-	Retry    bool
-	OpenID   string
-	EditID   string
-	DeleteID string
+	Add            bool
+	Retry          bool
+	Unlock         bool
+	UnlockPassword string
+	OpenID         string
+	EditID         string
+	DeleteID       string
 }
 
 type VaultListPage struct {
-	AddBtn   widget.Clickable
-	RetryBtn widget.Clickable
-	List     widget.List
+	AddBtn              widget.Clickable
+	RetryBtn            widget.Clickable
+	UnlockBtn           widget.Clickable
+	MasterPasswordInput widget.Editor
+	List                widget.List
+	UnlockError         string
 
 	cardClicks   []widget.Clickable
 	editClicks   []widget.Clickable
@@ -40,10 +45,15 @@ type VaultListPage struct {
 func NewVaultListPage() *VaultListPage {
 	return &VaultListPage{
 		List: widget.List{List: layout.List{Axis: layout.Vertical}},
+		MasterPasswordInput: widget.Editor{
+			SingleLine: true,
+			Submit:     true,
+			Mask:       '*',
+		},
 	}
 }
 
-func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []state.Vault, loading bool, loadError string) (layout.Dimensions, VaultListAction) {
+func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []state.Vault, loading bool, loadError string, locked bool) (layout.Dimensions, VaultListAction) {
 	var action VaultListAction
 
 	for p.AddBtn.Clicked(gtx) {
@@ -51,6 +61,14 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 	}
 	for p.RetryBtn.Clicked(gtx) {
 		action.Retry = true
+	}
+	for p.UnlockBtn.Clicked(gtx) {
+		action.Unlock = true
+		action.UnlockPassword = p.MasterPasswordInput.Text()
+	}
+
+	if locked {
+		return p.unlockLayout(gtx, th), action
 	}
 
 	ensureClickables(&p.cardClicks, len(vaults))
@@ -120,6 +138,48 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 	)
 
 	return dims, action
+}
+
+func (p *VaultListPage) unlockLayout(gtx layout.Context, th *material.Theme) layout.Dimensions {
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(420)))
+
+		children := []layout.FlexChild{
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				lbl := material.H6(th, "Unlock vault")
+				lbl.Font.Weight = font.Bold
+				return layout.Center.Layout(gtx, lbl.Layout)
+			}),
+			layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
+		}
+
+		if p.UnlockError != "" {
+			children = append(children,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return layout.Center.Layout(gtx, material.Body2(th, p.UnlockError).Layout)
+				}),
+				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
+			)
+		}
+
+		children = append(children,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				e := material.Editor(th, &p.MasterPasswordInput, "Master password")
+				e.TextSize = unit.Sp(16)
+				return e.Layout(gtx)
+			}),
+			layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				btn := material.Button(th, &p.UnlockBtn, "Unlock")
+				btn.TextSize = unit.Sp(16)
+				return btn.Layout(gtx)
+			}),
+		)
+
+		return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx, children...)
+		})
+	})
 }
 
 func loadErrorState(gtx layout.Context, th *material.Theme, retryBtn *widget.Clickable, message string) layout.Dimensions {

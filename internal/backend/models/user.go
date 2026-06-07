@@ -11,6 +11,8 @@ type User struct {
 	ID            bson.ObjectID `bson:"_id,omitempty" json:"id"`
 	Email         string        `bson:"email" json:"email" binding:"required,email"`
 	SupabaseUID   string        `bson:"supabase_uid,omitempty" json:"supabase_uid,omitempty"`
+	MasterSalt    string        `bson:"master_salt,omitempty" json:"-"`
+	VaultKey      string        `bson:"vault_key,omitempty" json:"-"`
 	EmailVerified bool          `bson:"email_verified" json:"email_verified"`
 	CreatedAt     time.Time     `bson:"created_at" json:"created_at"`
 	UpdatedAt     time.Time     `bson:"updated_at" json:"updated_at"`
@@ -59,8 +61,9 @@ func (u *User) ToResponse() UserResponse {
 
 // SignupRequest represents the signup request
 type SignupRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
+	Email          string `json:"email" binding:"required,email"`
+	Password       string `json:"password" binding:"required,min=8"`
+	MasterPassword string `json:"master_password" binding:"required,min=8"`
 }
 
 // VerifyEmailRequest represents the email verification request

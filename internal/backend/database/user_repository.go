@@ -125,6 +125,33 @@ func (r *UserRepository) UpdateEmailVerified(ctx context.Context, id string, ver
 	return nil
 }
 
+// UpdateVaultKey stores the salt and encrypted vault key for a user.
+func (r *UserRepository) UpdateVaultKey(ctx context.Context, id, masterSalt, vaultKey string) error {
+	objectID, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"master_salt": masterSalt,
+			"vault_key":   vaultKey,
+			"updated_at":  time.Now(),
+		},
+	}
+
+	result, err := r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, update)
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
 // GetAllUsers retrieves all users with pagination
 func (r *UserRepository) GetAllUsers(ctx context.Context, page, limit int64) ([]*models.User, error) {
 	skip := (page - 1) * limit

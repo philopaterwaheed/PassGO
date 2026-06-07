@@ -34,13 +34,19 @@ type LoginRequest struct {
 
 // SignupRequest represents signup data
 type SignupRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email          string `json:"email"`
+	Password       string `json:"password"`
+	MasterPassword string `json:"master_password"`
 }
 
 // ForgotPasswordRequest represents reset email request
 type ForgotPasswordRequest struct {
 	Email string `json:"email"`
+}
+
+type UpdateMasterPasswordRequest struct {
+	CurrentMasterPassword string `json:"current_master_password"`
+	NewMasterPassword     string `json:"new_master_password"`
 }
 
 // UserResponse represents user data from API
@@ -132,10 +138,11 @@ func (c *Client) Login(email, password string) (*AuthResponse, error) {
 }
 
 // Signup registers a new user
-func (c *Client) Signup(email, password string) (*AuthResponse, error) {
+func (c *Client) Signup(email, password, masterPassword string) (*AuthResponse, error) {
 	req := SignupRequest{
-		Email:    email,
-		Password: password,
+		Email:          email,
+		Password:       password,
+		MasterPassword: masterPassword,
 	}
 
 	body, err := json.Marshal(req)
@@ -254,6 +261,49 @@ func (c *Client) GetCurrentUser() (*UserResponse, error) {
 	}
 
 	return &user, nil
+}
+
+func (c *Client) UpdateMasterPassword(currentMasterPassword, newMasterPassword string) error {
+	if c.Token == "" {
+		return fmt.Errorf("no authentication token")
+	}
+
+	body, err := json.Marshal(UpdateMasterPasswordRequest{
+		CurrentMasterPassword: currentMasterPassword,
+		NewMasterPassword:     newMasterPassword,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequest("PUT", c.BaseURL+"/api/vaults/master-password", bytes.NewBuffer(body))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var errResp ErrorResponse
+		if err := json.Unmarshal(respBody, &errResp); err == nil && errResp.Error != "" {
+			return fmt.Errorf("%s", errResp.Error)
+		}
+		return fmt.Errorf("request failed with status %d", resp.StatusCode)
+	}
+
+	return nil
 }
 
 // CreateVault creates a new vault entry

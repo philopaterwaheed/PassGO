@@ -15,6 +15,7 @@ import (
 	"gioui.org/widget/material"
 
 	"github.com/philopaterwaheed/passGO/internal/frontend/state"
+	"github.com/philopaterwaheed/passGO/internal/frontend/ui"
 )
 
 type VaultListAction struct {
@@ -97,9 +98,7 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions { return layout.Dimensions{} }),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					btn := material.Button(th, &p.AddBtn, "Add")
-					btn.TextSize = unit.Sp(14)
-					return btn.Layout(gtx)
+					return ui.PrimaryButton(gtx, th, &p.AddBtn, "Add")
 				}),
 			)
 		}),
@@ -116,7 +115,7 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 			if len(vaults) == 0 {
 				return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(520)))
-					return material.Body1(th, "No vaults yet. Tap Add to create one.").Layout(gtx)
+					return ui.MutedLabel(th, material.Body1(th, "No vaults yet. Tap Add to create one.")).Layout(gtx)
 				})
 			}
 
@@ -129,9 +128,7 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 				isShowing := p.showPassword[i]
 
 				return layout.Inset{Bottom: unit.Dp(10)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return card(gtx, th, v, editClick, deleteClick, showClick, isShowing)
-					})
+					return card(gtx, th, v, click, editClick, deleteClick, showClick, isShowing)
 				})
 			})
 		}),
@@ -156,7 +153,9 @@ func (p *VaultListPage) unlockLayout(gtx layout.Context, th *material.Theme) lay
 		if p.UnlockError != "" {
 			children = append(children,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Center.Layout(gtx, material.Body2(th, p.UnlockError).Layout)
+					lbl := material.Body2(th, p.UnlockError)
+					lbl.Color = ui.DangerColor
+					return layout.Center.Layout(gtx, lbl.Layout)
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 			)
@@ -170,13 +169,12 @@ func (p *VaultListPage) unlockLayout(gtx layout.Context, th *material.Theme) lay
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				btn := material.Button(th, &p.UnlockBtn, "Unlock")
-				btn.TextSize = unit.Sp(16)
-				return btn.Layout(gtx)
+				gtx.Constraints.Min.X = gtx.Constraints.Max.X
+				return ui.PrimaryButton(gtx, th, &p.UnlockBtn, "Unlock")
 			}),
 		)
 
-		return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return ui.SurfacePanel(gtx, ui.SurfaceColor, ui.RadiusLarge, layout.UniformInset(unit.Dp(24)), func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx, children...)
 		})
 	})
@@ -194,16 +192,12 @@ func loadErrorState(gtx layout.Context, th *material.Theme, retryBtn *widget.Cli
 			layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				lbl := material.Body2(th, message)
-				c := th.Palette.Fg
-				c.A = 180
-				lbl.Color = c
+				lbl.Color = ui.MutedColor
 				return lbl.Layout(gtx)
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				btn := material.Button(th, retryBtn, "Retry")
-				btn.TextSize = unit.Sp(14)
-				return btn.Layout(gtx)
+				return ui.PrimaryButton(gtx, th, retryBtn, "Retry")
 			}),
 		)
 	})
@@ -221,9 +215,7 @@ func loadingState(gtx layout.Context, th *material.Theme) layout.Dimensions {
 			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				lbl := material.Body1(th, "Loading vaults...")
-				c := th.Palette.Fg
-				c.A = 180
-				lbl.Color = c
+				lbl.Color = ui.MutedColor
 				return lbl.Layout(gtx)
 			}),
 		)
@@ -248,127 +240,52 @@ func ensureClickables(dst *[]widget.Clickable, n int) {
 	}
 }
 
-func card(gtx layout.Context, th *material.Theme, v state.Vault, editBtn, delBtn, showBtn *widget.Clickable, isShowing bool) layout.Dimensions {
+func card(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, editBtn, delBtn, showBtn *widget.Clickable, isShowing bool) layout.Dimensions {
 	return layout.Inset{Top: unit.Dp(4), Bottom: unit.Dp(4), Left: unit.Dp(8), Right: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		radius := gtx.Dp(unit.Dp(16))
+		radius := gtx.Dp(ui.RadiusLarge)
 
 		// Background color (very transparent contrast background)
-		bg := th.Palette.ContrastBg
-		bg.A = 15
+		bg := ui.SurfaceColor
 
 		content := func(gtx layout.Context) layout.Dimensions {
 			return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				mainRow := func(gtx layout.Context) layout.Dimensions {
+					return vaultSummary(gtx, th, v, openBtn, showBtn, isShowing)
+				}
+
+				actions := func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							return layout.Dimensions{}
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return ui.SecondaryButton(gtx, th, editBtn, "Edit")
+						}),
+						layout.Rigid(layout.Spacer{Width: unit.Dp(6)}.Layout),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							btn := material.Button(th, delBtn, "Delete")
+							btn.Background = ui.DangerColor
+							btn.Color = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
+							btn.Inset = layout.Inset{Top: unit.Dp(10), Bottom: unit.Dp(10), Left: unit.Dp(12), Right: unit.Dp(12)}
+							btn.TextSize = unit.Sp(13)
+							btn.CornerRadius = ui.RadiusSmall
+							return btn.Layout(gtx)
+						}),
+					)
+				}
+
+				if ui.IsCompact(gtx) {
+					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+						layout.Rigid(mainRow),
+						layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
+						layout.Rigid(actions),
+					)
+				}
+
 				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						// Avatar circle
-						size := gtx.Dp(unit.Dp(48))
-
-						initial := "?"
-						if len(v.Title) > 0 {
-							initial = strings.ToUpper(string(v.Title[0]))
-						}
-
-						return layout.Stack{}.Layout(gtx,
-							layout.Expanded(func(gtx layout.Context) layout.Dimensions {
-								bounds := image.Rectangle{Max: image.Point{X: size, Y: size}}
-								defer clip.UniformRRect(bounds, size/2).Push(gtx.Ops).Pop()
-
-								avatarBg := th.Palette.ContrastBg
-								avatarBg.A = 180
-								paint.Fill(gtx.Ops, avatarBg)
-								return layout.Dimensions{Size: bounds.Max}
-							}),
-							layout.Stacked(func(gtx layout.Context) layout.Dimensions {
-								gtx.Constraints.Min = image.Point{X: size, Y: size}
-								return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									lbl := material.H6(th, initial)
-									lbl.Color = th.Palette.ContrastFg
-									lbl.Font.Weight = font.Bold
-									return lbl.Layout(gtx)
-								})
-							}),
-						)
-					}),
-					layout.Rigid(layout.Spacer{Width: unit.Dp(16)}.Layout),
-					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-								lbl := material.Body1(th, v.Title)
-								lbl.Font.Weight = font.Bold
-								return lbl.Layout(gtx)
-							}),
-							layout.Rigid(layout.Spacer{Height: unit.Dp(2)}.Layout),
-							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-								if v.Username == "" {
-									return layout.Dimensions{}
-								}
-								lbl := material.Body2(th, v.Username)
-								c := th.Palette.Fg
-								c.A = 180
-								lbl.Color = c
-								return lbl.Layout(gtx)
-							}),
-							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-								if v.URL == "" {
-									return layout.Dimensions{}
-								}
-								lbl := material.Caption(th, v.URL)
-								c := th.Palette.Fg
-								c.A = 150
-								lbl.Color = c
-								return lbl.Layout(gtx)
-							}),
-							layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
-							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-								if v.Password == "" {
-									return layout.Dimensions{}
-								}
-
-								txt := strings.Repeat("•", 10)
-								if isShowing {
-									txt = v.Password
-								}
-
-								return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-									layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-										lbl := material.Body2(th, txt)
-										return lbl.Layout(gtx)
-									}),
-									layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
-									layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-										btnTxt := "Show"
-										if isShowing {
-											btnTxt = "Hide"
-										}
-										btn := material.Button(th, showBtn, btnTxt)
-										btn.TextSize = unit.Sp(10)
-										btn.Inset = layout.UniformInset(unit.Dp(4))
-										btn.Background = th.Palette.ContrastBg
-										btn.Color = th.Palette.ContrastFg
-										return btn.Layout(gtx)
-									}),
-								)
-							}),
-						)
-					}),
-					layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						btn := material.Button(th, editBtn, "Edit")
-						btn.Background = color.NRGBA{R: 50, G: 150, B: 200, A: 255}
-						btn.Color = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
-						btn.Inset = layout.UniformInset(unit.Dp(8))
-						btn.TextSize = unit.Sp(12)
-						return btn.Layout(gtx)
-					}),
-					layout.Rigid(layout.Spacer{Width: unit.Dp(4)}.Layout),
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						btn := material.Button(th, delBtn, "Delete")
-						btn.Background = color.NRGBA{R: 200, G: 50, B: 50, A: 255}
-						btn.Color = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
-						btn.Inset = layout.UniformInset(unit.Dp(8))
-						btn.TextSize = unit.Sp(12)
-						return btn.Layout(gtx)
-					}),
+					layout.Flexed(1, mainRow),
+					layout.Rigid(layout.Spacer{Width: unit.Dp(12)}.Layout),
+					layout.Rigid(actions),
 				)
 			})
 		}
@@ -381,9 +298,9 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault, editBtn, delBtn
 		paint.Fill(gtx.Ops, bg)
 
 		border := widget.Border{
-			Color:        th.Palette.ContrastBg,
-			CornerRadius: unit.Dp(16),
-			Width:        unit.Dp(1.5),
+			Color:        ui.BorderColor,
+			CornerRadius: ui.RadiusLarge,
+			Width:        unit.Dp(1),
 		}
 		border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return layout.Dimensions{Size: dims.Size}
@@ -392,4 +309,105 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault, editBtn, delBtn
 		call.Add(gtx.Ops)
 		return dims
 	})
+}
+
+func vaultAvatar(gtx layout.Context, th *material.Theme, title string) layout.Dimensions {
+	size := gtx.Dp(unit.Dp(48))
+
+	initial := "?"
+	if len(title) > 0 {
+		initial = strings.ToUpper(string(title[0]))
+	}
+
+	return layout.Stack{}.Layout(gtx,
+		layout.Expanded(func(gtx layout.Context) layout.Dimensions {
+			bounds := image.Rectangle{Max: image.Point{X: size, Y: size}}
+			defer clip.UniformRRect(bounds, size/2).Push(gtx.Ops).Pop()
+
+			avatarBg := th.Palette.ContrastBg
+			avatarBg.A = 180
+			paint.Fill(gtx.Ops, avatarBg)
+			return layout.Dimensions{Size: bounds.Max}
+		}),
+		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min = image.Point{X: size, Y: size}
+			return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				lbl := material.H6(th, initial)
+				lbl.Color = th.Palette.ContrastFg
+				lbl.Font.Weight = font.Bold
+				return lbl.Layout(gtx)
+			})
+		}),
+	)
+}
+
+func vaultSummary(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, showBtn *widget.Clickable, isShowing bool) layout.Dimensions {
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return openBtn.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return vaultAvatar(gtx, th, v.Title)
+					}),
+					layout.Rigid(layout.Spacer{Width: unit.Dp(16)}.Layout),
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return vaultIdentity(gtx, th, v)
+					}),
+				)
+			})
+		}),
+		layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			if v.Password == "" {
+				return layout.Dimensions{}
+			}
+
+			txt := strings.Repeat("•", 10)
+			if isShowing {
+				txt = v.Password
+			}
+
+			return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					lbl := material.Body2(th, txt)
+					return lbl.Layout(gtx)
+				}),
+				layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					btnTxt := "Show"
+					if isShowing {
+						btnTxt = "Hide"
+					}
+					return ui.GhostButton(gtx, th, showBtn, btnTxt)
+				}),
+			)
+		}),
+	)
+}
+
+func vaultIdentity(gtx layout.Context, th *material.Theme, v state.Vault) layout.Dimensions {
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			lbl := material.Body1(th, v.Title)
+			lbl.Font.Weight = font.Bold
+			return lbl.Layout(gtx)
+		}),
+		layout.Rigid(layout.Spacer{Height: unit.Dp(2)}.Layout),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			if v.Username == "" {
+				return layout.Dimensions{}
+			}
+			lbl := material.Body2(th, v.Username)
+			lbl.Color = ui.MutedColor
+			return lbl.Layout(gtx)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			if v.URL == "" {
+				return layout.Dimensions{}
+			}
+			lbl := material.Caption(th, v.URL)
+			lbl.Color = ui.MutedColor
+			return lbl.Layout(gtx)
+		}),
+	)
 }

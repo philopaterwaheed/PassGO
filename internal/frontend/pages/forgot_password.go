@@ -33,14 +33,16 @@ func (p *ForgotPasswordPage) Reset() {
 
 func (p *ForgotPasswordPage) Layout(gtx layout.Context, th *material.Theme) layout.Dimensions {
 	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(420)))
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(440)))
 		children := []layout.FlexChild{
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Center.Layout(gtx, material.H4(th, "Reset password").Layout)
+				lbl := material.H4(th, "Reset password")
+				lbl.Color = th.Palette.ContrastBg
+				return layout.Center.Layout(gtx, lbl.Layout)
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return material.Body2(th, "We will email you a reset link.").Layout(gtx)
+				return ui.MutedLabel(th, material.Body2(th, "We will email you a reset link.")).Layout(gtx)
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(12)}.Layout),
 		}
@@ -48,7 +50,9 @@ func (p *ForgotPasswordPage) Layout(gtx layout.Context, th *material.Theme) layo
 		if p.ErrorMsg != "" {
 			children = append(children,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Center.Layout(gtx, material.Body2(th, p.ErrorMsg).Layout)
+					lbl := material.Body2(th, p.ErrorMsg)
+					lbl.Color = ui.DangerColor
+					return layout.Center.Layout(gtx, lbl.Layout)
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 			)
@@ -57,7 +61,9 @@ func (p *ForgotPasswordPage) Layout(gtx layout.Context, th *material.Theme) layo
 		if p.SuccessMsg != "" {
 			children = append(children,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Center.Layout(gtx, material.Body2(th, p.SuccessMsg).Layout)
+					lbl := material.Body2(th, p.SuccessMsg)
+					lbl.Color = ui.SuccessColor
+					return layout.Center.Layout(gtx, lbl.Layout)
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 			)
@@ -75,17 +81,17 @@ func (p *ForgotPasswordPage) Layout(gtx layout.Context, th *material.Theme) layo
 				if p.IsLoading {
 					btnText = "Sending..."
 				}
-				btn := material.Button(th, &p.SendBtn, btnText)
-				btn.TextSize = unit.Sp(16)
-				return btn.Layout(gtx)
+				gtx.Constraints.Min.X = gtx.Constraints.Max.X
+				return ui.PrimaryButton(gtx, th, &p.SendBtn, btnText)
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return ui.OutlinedButton(gtx, th, &p.BackBtn, "Back", th.Palette.Fg, th.Palette.ContrastBg)
+				gtx.Constraints.Min.X = gtx.Constraints.Max.X
+				return ui.SecondaryButton(gtx, th, &p.BackBtn, "Back")
 			}),
 		)
 
-		return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return ui.SurfacePanel(gtx, ui.SurfaceColor, ui.RadiusLarge, layout.UniformInset(unit.Dp(24)), func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx, children...)
 		})
 	})

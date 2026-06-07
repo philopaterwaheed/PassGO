@@ -4,7 +4,16 @@ import (
 	"image/color"
 )
 
-var BabyBlue = color.NRGBA{R: 173, G: 216, B: 230, A: 255}
+var BabyBlue = color.NRGBA{R: 110, G: 196, B: 220, A: 255}
+
+var (
+	SurfaceColor    color.NRGBA
+	SurfaceAltColor color.NRGBA
+	BorderColor     color.NRGBA
+	MutedColor      color.NRGBA
+	DangerColor     color.NRGBA
+	SuccessColor    color.NRGBA
+)
 
 func blend(a, b color.NRGBA, t uint8) color.NRGBA {
 	u := uint16(255 - t)
@@ -18,5 +27,4 @@ func blend(a, b color.NRGBA, t uint8) color.NRGBA {
 }
 
 // for eye comfort
-var BabyBlueBackground = blend(BabyBlue, color.NRGBA{R: 255, G: 255, B: 255, A: 255}, 220)
-
+var BabyBlueBackground = color.NRGBA{R: 244, G: 250, B: 252, A: 255}

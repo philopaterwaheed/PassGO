@@ -111,13 +111,15 @@ func (p *VaultAddPage) Layout(gtx layout.Context, th *material.Theme) (layout.Di
 
 	dims := layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(520)))
-		return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return ui.SurfacePanel(gtx, ui.SurfaceColor, ui.RadiusLarge, layout.UniformInset(unit.Dp(24)), func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					if p.ErrorMsg == "" {
 						return layout.Dimensions{}
 					}
-					return layout.Inset{Bottom: unit.Dp(10)}.Layout(gtx, material.Body2(th, p.ErrorMsg).Layout)
+					lbl := material.Body2(th, p.ErrorMsg)
+					lbl.Color = ui.DangerColor
+					return layout.Inset{Bottom: unit.Dp(10)}.Layout(gtx, lbl.Layout)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					e := material.Editor(th, &p.TitleEd, "Title")
@@ -144,12 +146,7 @@ func (p *VaultAddPage) Layout(gtx layout.Context, th *material.Theme) (layout.Di
 							if p.ShowPassword {
 								btnTxt = "Hide"
 							}
-							btn := material.Button(th, &p.ShowPasswordBtn, btnTxt)
-							btn.TextSize = unit.Sp(12)
-							btn.Inset = layout.UniformInset(unit.Dp(6))
-							btn.Background = th.Palette.ContrastBg
-							btn.Color = th.Palette.ContrastFg
-							return btn.Layout(gtx)
+							return ui.GhostButton(gtx, th, &p.ShowPasswordBtn, btnTxt)
 						}),
 					)
 				}),
@@ -178,17 +175,12 @@ func (p *VaultAddPage) Layout(gtx layout.Context, th *material.Theme) (layout.Di
 						btnText = "Saving..."
 					}
 					gtx.Constraints.Min.X = gtx.Constraints.Max.X
-					btn := material.Button(th, &p.SaveBtn, btnText)
-					btn.TextSize = unit.Sp(16)
-					btn.CornerRadius = unit.Dp(10)
-					btn.Background = th.Palette.ContrastBg
-					btn.Color = th.Palette.ContrastFg
-					return btn.Layout(gtx)
+					return ui.PrimaryButton(gtx, th, &p.SaveBtn, btnText)
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					gtx.Constraints.Min.X = gtx.Constraints.Max.X
-					return ui.OutlinedButton(gtx, th, &p.BackBtn, "Back", th.Palette.Fg, th.Palette.ContrastBg)
+					return ui.SecondaryButton(gtx, th, &p.BackBtn, "Back")
 				}),
 			)
 		})

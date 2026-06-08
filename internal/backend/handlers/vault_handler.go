@@ -272,8 +272,8 @@ func (h *VaultHandler) GetVaults(c *gin.Context) {
 			continue
 		}
 
-		vaults[i].Password = "********"
-		vaults[i].Notes = "********"
+		vaults[i].Password = ""
+		vaults[i].Notes = ""
 		vaults[i].Decrypted = false
 	}
 

@@ -152,7 +152,7 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 				row := p.row(v.ID)
 
 				return layout.Inset{Bottom: unit.Dp(10)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return card(gtx, th, v, &row.cardClick, &row.editClick, &row.deleteClick, &row.showClick, &row.urlClick, &row.urlOpenClick, row.showPassword)
+					return card(gtx, th, v, row)
 				})
 			})
 		}),
@@ -274,7 +274,7 @@ func loadingState(gtx layout.Context, th *material.Theme) layout.Dimensions {
 	})
 }
 
-func card(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, editBtn, delBtn, showBtn, urlBtn, urlOpenBtn *widget.Clickable, isShowing bool) layout.Dimensions {
+func card(gtx layout.Context, th *material.Theme, v state.Vault, row *vaultListRow) layout.Dimensions {
 	return layout.Inset{Top: unit.Dp(4), Bottom: unit.Dp(4), Left: unit.Dp(8), Right: unit.Dp(8)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		radius := gtx.Dp(ui.RadiusLarge)
 
@@ -284,7 +284,7 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, editBt
 		content := func(gtx layout.Context) layout.Dimensions {
 			return layout.UniformInset(unit.Dp(16)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				mainRow := func(gtx layout.Context) layout.Dimensions {
-					return vaultSummary(gtx, th, v, openBtn, showBtn, urlBtn, isShowing)
+					return vaultSummary(gtx, th, v, &row.cardClick, &row.urlClick, row.showPassword)
 				}
 
 				actions := func(gtx layout.Context) layout.Dimensions {
@@ -296,7 +296,7 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, editBt
 							if v.URL == "" {
 								return layout.Dimensions{}
 							}
-							return ui.SecondaryButton(gtx, th, urlOpenBtn, "Open")
+							return ui.SecondaryButton(gtx, th, &row.urlOpenClick, "Open")
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							if v.URL == "" {
@@ -309,10 +309,10 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, editBt
 								return layout.Dimensions{}
 							}
 							btnTxt := "Show"
-							if v.Decrypted && isShowing {
+							if v.Decrypted && row.showPassword {
 								btnTxt = "Hide"
 							}
-							return ui.SecondaryButton(gtx, th, showBtn, btnTxt)
+							return ui.SecondaryButton(gtx, th, &row.showClick, btnTxt)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							if v.Decrypted && v.Password == "" {
@@ -321,11 +321,11 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, editBt
 							return layout.Spacer{Width: unit.Dp(6)}.Layout(gtx)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return ui.SecondaryButton(gtx, th, editBtn, "Edit")
+							return ui.SecondaryButton(gtx, th, &row.editClick, "Edit")
 						}),
 						layout.Rigid(layout.Spacer{Width: unit.Dp(6)}.Layout),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							btn := material.Button(th, delBtn, "Delete")
+							btn := material.Button(th, &row.deleteClick, "Delete")
 							btn.Background = ui.DangerColor
 							btn.Color = color.NRGBA{R: 255, G: 255, B: 255, A: 255}
 							btn.Inset = layout.Inset{Top: unit.Dp(10), Bottom: unit.Dp(10), Left: unit.Dp(12), Right: unit.Dp(12)}
@@ -403,7 +403,7 @@ func vaultAvatar(gtx layout.Context, th *material.Theme, title string) layout.Di
 	)
 }
 
-func vaultSummary(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, showBtn, urlBtn *widget.Clickable, isShowing bool) layout.Dimensions {
+func vaultSummary(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, urlBtn *widget.Clickable, isShowing bool) layout.Dimensions {
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return openBtn.Layout(gtx, func(gtx layout.Context) layout.Dimensions {

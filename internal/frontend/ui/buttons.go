@@ -87,6 +87,36 @@ func GhostButton(gtx layout.Context, th *material.Theme, click *widget.Clickable
 	return btn.Layout(gtx)
 }
 
+func CopyButton(gtx layout.Context, th *material.Theme, click *widget.Clickable, copied bool) layout.Dimensions {
+	label := "Copy"
+	col := th.Palette.Fg
+	borderCol := BorderColor
+	if copied {
+		label = "Copied"
+		col = SuccessColor
+		borderCol = SuccessColor
+	}
+
+	btn := material.Button(th, click, label)
+	btn.Background = color.NRGBA{}
+	btn.Color = col
+	btn.CornerRadius = RadiusSmall
+	btn.TextSize = unit.Sp(13)
+	btn.Inset = layout.Inset{Top: unit.Dp(8), Bottom: unit.Dp(8), Left: unit.Dp(10), Right: unit.Dp(10)}
+
+	border := widget.Border{
+		Color:        borderCol,
+		CornerRadius: btn.CornerRadius,
+		Width:        unit.Dp(1),
+	}
+
+	return border.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Min.X = maxInt(gtx.Constraints.Min.X, gtx.Dp(unit.Dp(72)))
+		gtx.Constraints.Min.Y = maxInt(gtx.Constraints.Min.Y, gtx.Dp(unit.Dp(36)))
+		return btn.Layout(gtx)
+	})
+}
+
 func LinkButton(gtx layout.Context, th *material.Theme, click *widget.Clickable, icon string, label string) layout.Dimensions {
 	return linkButton(gtx, th, click, icon, label, unit.Dp(78), layout.Inset{Top: unit.Dp(6), Bottom: unit.Dp(6), Left: unit.Dp(8), Right: unit.Dp(8)})
 }

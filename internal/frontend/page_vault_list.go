@@ -121,11 +121,10 @@ func handleVaultListPage(
 			err := apiClient.DeleteVault(id)
 			if err != nil {
 				log.Printf("Failed to delete vault: %v", err)
+				invalidate()
+				return
 			}
-			st.VaultsLoaded = false // Force reload
-			st.VaultsLoading = false
-			st.VaultsLoadError = ""
-			st.VaultsLoadDone = nil
+			st.DeleteVault(id)
 			invalidate()
 		}(action.DeleteID)
 		return true

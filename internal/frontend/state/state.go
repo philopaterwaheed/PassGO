@@ -103,6 +103,18 @@ func (s *AppState) UpdateVault(v Vault) {
 	s.Vaults = append([]Vault{v}, s.Vaults...)
 }
 
+func (s *AppState) DeleteVault(id string) {
+	for i, v := range s.Vaults {
+		if v.ID == id {
+			s.Vaults = append(s.Vaults[:i], s.Vaults[i+1:]...)
+			if s.SelectedVaultID == id {
+				s.SelectedVaultID = ""
+			}
+			return
+		}
+	}
+}
+
 func NewVaultID() string {
 	return fmt.Sprintf("v_%d", time.Now().UnixNano())
 }

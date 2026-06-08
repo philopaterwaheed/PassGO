@@ -86,6 +86,7 @@ type VaultResponse struct {
 	Notes     string    `json:"notes"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+	Decrypted bool      `json:"decrypted"`
 }
 
 // ErrorResponse represents an error from the API

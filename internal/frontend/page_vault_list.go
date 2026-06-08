@@ -69,14 +69,7 @@ func handleVaultListPage(
 			// Map to state models
 			var newVaults []state.Vault
 			for _, v := range resp {
-				newVaults = append(newVaults, state.Vault{
-					ID:       v.ID,
-					Title:    v.Title,
-					Username: v.Username,
-					Password: v.Password,
-					URL:      v.URL,
-					Notes:    v.Notes,
-				})
+				newVaults = append(newVaults, apiVaultToState(v))
 			}
 			done <- state.VaultLoadResult{Vaults: newVaults}
 			invalidate()
@@ -147,6 +140,24 @@ func handleVaultListPage(
 				vToEdit = &v
 				break
 			}
+		}
+		if vToEdit != nil && !vToEdit.Decrypted {
+			go func(id string, masterPassword string) {
+				resp, err := apiClient.GetVault(id, masterPassword)
+				if err != nil {
+					log.Printf("Failed to fetch vault before edit: %v", err)
+					invalidate()
+					return
+				}
+
+				v := apiVaultToState(*resp)
+				st.UpdateVault(v)
+				st.Nav = state.NavVault
+				st.Route = state.RouteVaultAdd
+				vaultAddPage.Reset(&v)
+				invalidate()
+			}(action.EditID, st.Auth.MasterPassword)
+			return true
 		}
 		st.Nav = state.NavVault
 		st.Route = state.RouteVaultAdd

@@ -28,7 +28,7 @@ func (p *VaultDetailPage) Reset() {
 	p.ShowPassword = false
 }
 
-func (p *VaultDetailPage) Layout(gtx layout.Context, th *material.Theme, v state.Vault) (layout.Dimensions, VaultDetailAction) {
+func (p *VaultDetailPage) Layout(gtx layout.Context, th *material.Theme, v state.Vault, loading bool, loadError string) (layout.Dimensions, VaultDetailAction) {
 	var action VaultDetailAction
 
 	for p.BackBtn.Clicked(gtx) {
@@ -59,6 +59,17 @@ func (p *VaultDetailPage) Layout(gtx layout.Context, th *material.Theme, v state
 					return lbl.Layout(gtx)
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(14)}.Layout),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					if loading {
+						return layout.Inset{Bottom: unit.Dp(10)}.Layout(gtx, ui.MutedLabel(th, material.Body2(th, "Decrypting vault...")).Layout)
+					}
+					if loadError != "" {
+						errLbl := material.Body2(th, loadError)
+						errLbl.Color = ui.DangerColor
+						return layout.Inset{Bottom: unit.Dp(10)}.Layout(gtx, errLbl.Layout)
+					}
+					return layout.Dimensions{}
+				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions { return field(th, gtx, "Username", v.Username) }),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					if passStr == "" {

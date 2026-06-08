@@ -35,12 +35,13 @@ type Auth struct {
 
 // Vault represents a single credential entry stored
 type Vault struct {
-	ID       string
-	Title    string
-	Username string
-	Password string
-	URL      string
-	Notes    string
+	ID        string
+	Title     string
+	Username  string
+	Password  string
+	URL       string
+	Notes     string
+	Decrypted bool
 }
 
 type AppState struct {
@@ -56,11 +57,20 @@ type AppState struct {
 	VaultsLoading   bool
 	VaultsLoadError string
 	VaultsLoadDone  chan VaultLoadResult
+
+	VaultDetailLoading   bool
+	VaultDetailLoadError string
+	VaultDetailLoadDone  chan VaultDetailLoadResult
 }
 
 type VaultLoadResult struct {
 	Vaults []Vault
 	Err    error
+}
+
+type VaultDetailLoadResult struct {
+	Vault Vault
+	Err   error
 }
 
 func (s *AppState) IsAuthed() bool {
@@ -81,6 +91,16 @@ func (s *AppState) VaultByID(id string) (Vault, bool) {
 		}
 	}
 	return Vault{}, false
+}
+
+func (s *AppState) UpdateVault(v Vault) {
+	for i, existing := range s.Vaults {
+		if existing.ID == v.ID {
+			s.Vaults[i] = v
+			return
+		}
+	}
+	s.Vaults = append([]Vault{v}, s.Vaults...)
 }
 
 func NewVaultID() string {

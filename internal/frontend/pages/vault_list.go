@@ -84,6 +84,10 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 
 	for i := range vaults {
 		for p.showClicks[i].Clicked(gtx) {
+			if !vaults[i].Decrypted {
+				action.OpenID = vaults[i].ID
+				continue
+			}
 			p.showPassword[i] = !p.showPassword[i]
 		}
 		for p.deleteClicks[i].Clicked(gtx) {
@@ -287,6 +291,22 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, editBt
 							return layout.Spacer{Width: unit.Dp(6)}.Layout(gtx)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							if v.Decrypted && v.Password == "" {
+								return layout.Dimensions{}
+							}
+							btnTxt := "Show"
+							if v.Decrypted && isShowing {
+								btnTxt = "Hide"
+							}
+							return ui.SecondaryButton(gtx, th, showBtn, btnTxt)
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							if v.Decrypted && v.Password == "" {
+								return layout.Dimensions{}
+							}
+							return layout.Spacer{Width: unit.Dp(6)}.Layout(gtx)
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return ui.SecondaryButton(gtx, th, editBtn, "Edit")
 						}),
 						layout.Rigid(layout.Spacer{Width: unit.Dp(6)}.Layout),
@@ -402,12 +422,15 @@ func vaultSummary(gtx layout.Context, th *material.Theme, v state.Vault, openBtn
 		}),
 		layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			if v.Password == "" {
+			if !v.Decrypted {
+				return layout.Dimensions{}
+			}
+			if v.Password == "" && v.Decrypted {
 				return layout.Dimensions{}
 			}
 
 			txt := strings.Repeat("•", 10)
-			if isShowing {
+			if isShowing && v.Decrypted {
 				txt = v.Password
 			}
 
@@ -415,14 +438,6 @@ func vaultSummary(gtx layout.Context, th *material.Theme, v state.Vault, openBtn
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					lbl := material.Body2(th, txt)
 					return lbl.Layout(gtx)
-				}),
-				layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					btnTxt := "Show"
-					if isShowing {
-						btnTxt = "Hide"
-					}
-					return ui.GhostButton(gtx, th, showBtn, btnTxt)
 				}),
 			)
 		}),

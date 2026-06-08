@@ -23,6 +23,8 @@ type VaultHandler struct {
 	userRepo *database.UserRepository
 }
 
+const listDecryptedVaultLimit = 20
+
 // NewVaultHandler creates a new VaultHandler
 func NewVaultHandler() *VaultHandler {
 	return &VaultHandler{
@@ -68,6 +70,35 @@ func (h *VaultHandler) getVaultKey(c *gin.Context, userID string) ([]byte, bool)
 	}
 
 	return vaultKey, true
+}
+
+func decryptVaultFields(vault *models.Vault, vaultKey []byte) bool {
+	decrypted := true
+
+	if vault.Password != "" {
+		dec, err := crypto.Decrypt(vault.Password, vaultKey)
+		if err == nil {
+			vault.Password = dec
+		} else {
+			log.Printf("Failed to decrypt password for vault %s\n", vault.ID.Hex())
+			vault.Password = ""
+			decrypted = false
+		}
+	}
+
+	if vault.Notes != "" {
+		dec, err := crypto.Decrypt(vault.Notes, vaultKey)
+		if err == nil {
+			vault.Notes = dec
+		} else {
+			log.Printf("Failed to decrypt notes for vault %s\n", vault.ID.Hex())
+			vault.Notes = ""
+			decrypted = false
+		}
+	}
+
+	vault.Decrypted = decrypted
+	return decrypted
 }
 
 func createWrappedVaultKey(masterPassword string) ([]byte, string, string, error) {
@@ -235,24 +266,15 @@ func (h *VaultHandler) GetVaults(c *gin.Context) {
 		return
 	}
 
-	// Decrypt fields
 	for i := range vaults {
-		if vaults[i].Password != "" {
-			dec, err := crypto.Decrypt(vaults[i].Password, vaultKey)
-			if err == nil {
-				vaults[i].Password = dec
-			} else {
-				log.Printf("Failed to decrypt password for vault %s\n", vaults[i].ID.Hex())
-			}
+		if i < listDecryptedVaultLimit {
+			decryptVaultFields(&vaults[i], vaultKey)
+			continue
 		}
-		if vaults[i].Notes != "" {
-			dec, err := crypto.Decrypt(vaults[i].Notes, vaultKey)
-			if err == nil {
-				vaults[i].Notes = dec
-			} else {
-				log.Printf("Failed to decrypt notes for vault %s\n", vaults[i].ID.Hex())
-			}
-		}
+
+		vaults[i].Password = "********"
+		vaults[i].Notes = "********"
+		vaults[i].Decrypted = false
 	}
 
 	c.JSON(http.StatusOK, vaults)
@@ -289,18 +311,7 @@ func (h *VaultHandler) GetVault(c *gin.Context) {
 		return
 	}
 
-	if vault.Password != "" {
-		dec, err := crypto.Decrypt(vault.Password, vaultKey)
-		if err == nil {
-			vault.Password = dec
-		}
-	}
-	if vault.Notes != "" {
-		dec, err := crypto.Decrypt(vault.Notes, vaultKey)
-		if err == nil {
-			vault.Notes = dec
-		}
-	}
+	decryptVaultFields(vault, vaultKey)
 
 	c.JSON(http.StatusOK, vault)
 }

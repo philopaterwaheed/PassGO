@@ -44,6 +44,7 @@ func handleVaultAddPage(
 			v.ID = page.EditingID
 		}
 		v.Decrypted = true
+		v.HasPassword = v.Password != ""
 
 		go func() {
 			var err error

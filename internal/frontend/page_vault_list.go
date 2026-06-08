@@ -107,6 +107,22 @@ func handleVaultListPage(
 			return true
 		}
 
+		if action.ShowID != "" {
+			go func(id string, masterPassword string) {
+				resp, err := apiClient.GetVault(id, masterPassword)
+				if err != nil {
+					log.Printf("Failed to fetch vault password: %v", err)
+					invalidate()
+					return
+				}
+
+				st.UpdateVault(apiVaultToState(*resp))
+				page.RevealPassword(id)
+				invalidate()
+			}(action.ShowID, st.Auth.MasterPassword)
+			return true
+		}
+
 		if action.OpenID != "" {
 			st.SelectedVaultID = action.OpenID
 			st.Nav = state.NavVault

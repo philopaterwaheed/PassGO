@@ -35,13 +35,14 @@ type Auth struct {
 
 // Vault represents a single credential entry stored
 type Vault struct {
-	ID        string
-	Title     string
-	Username  string
-	Password  string
-	URL       string
-	Notes     string
-	Decrypted bool
+	ID          string
+	Title       string
+	Username    string
+	Password    string
+	URL         string
+	Notes       string
+	Decrypted   bool
+	HasPassword bool
 }
 
 type AppState struct {

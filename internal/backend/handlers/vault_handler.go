@@ -74,6 +74,7 @@ func (h *VaultHandler) getVaultKey(c *gin.Context, userID string) ([]byte, bool)
 
 func decryptVaultFields(vault *models.Vault, vaultKey []byte) bool {
 	decrypted := true
+	vault.HasPassword = vault.Password != ""
 
 	if vault.Password != "" {
 		dec, err := crypto.Decrypt(vault.Password, vaultKey)
@@ -229,6 +230,7 @@ func (h *VaultHandler) CreateVault(c *gin.Context) {
 			return
 		}
 	}
+	req.HasPassword = req.Password != ""
 	if req.Notes != "" {
 		req.Notes, err = crypto.Encrypt(req.Notes, vaultKey)
 		if err != nil {
@@ -272,6 +274,7 @@ func (h *VaultHandler) GetVaults(c *gin.Context) {
 			continue
 		}
 
+		vaults[i].HasPassword = vaults[i].Password != ""
 		vaults[i].Password = ""
 		vaults[i].Notes = ""
 		vaults[i].Decrypted = false

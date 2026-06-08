@@ -24,6 +24,7 @@ type VaultListAction struct {
 	Unlock         bool
 	UnlockPassword string
 	OpenID         string
+	ShowID         string
 	EditID         string
 	DeleteID       string
 }
@@ -85,7 +86,7 @@ func (p *VaultListPage) Action(gtx layout.Context, vaults []state.Vault, locked 
 
 		for row.showClick.Clicked(gtx) {
 			if !vaults[i].Decrypted {
-				action.OpenID = vaults[i].ID
+				action.ShowID = vaults[i].ID
 				continue
 			}
 			row.showPassword = !row.showPassword
@@ -159,6 +160,10 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 	)
 
 	return dims, action
+}
+
+func (p *VaultListPage) RevealPassword(id string) {
+	p.row(id).showPassword = true
 }
 
 func (p *VaultListPage) row(id string) *vaultListRow {
@@ -305,7 +310,7 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault, row *vaultListR
 							return layout.Spacer{Width: unit.Dp(6)}.Layout(gtx)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							if v.Decrypted && v.Password == "" {
+							if !v.HasPassword {
 								return layout.Dimensions{}
 							}
 							btnTxt := "Show"
@@ -315,7 +320,7 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault, row *vaultListR
 							return ui.SecondaryButton(gtx, th, &row.showClick, btnTxt)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							if v.Decrypted && v.Password == "" {
+							if !v.HasPassword{
 								return layout.Dimensions{}
 							}
 							return layout.Spacer{Width: unit.Dp(6)}.Layout(gtx)
@@ -438,10 +443,7 @@ func vaultSummary(gtx layout.Context, th *material.Theme, v state.Vault, openBtn
 		}),
 		layout.Rigid(layout.Spacer{Height: unit.Dp(4)}.Layout),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			if !v.Decrypted {
-				return layout.Dimensions{}
-			}
-			if v.Password == "" && v.Decrypted {
+			if !v.HasPassword {
 				return layout.Dimensions{}
 			}
 

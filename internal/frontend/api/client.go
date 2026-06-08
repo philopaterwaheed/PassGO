@@ -77,16 +77,17 @@ type VaultRequest struct {
 
 // VaultResponse represents vault data from API
 type VaultResponse struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	Title     string    `json:"title"`
-	Username  string    `json:"username"`
-	Password  string    `json:"password"`
-	URL       string    `json:"url"`
-	Notes     string    `json:"notes"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Decrypted bool      `json:"decrypted"`
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	Title       string    `json:"title"`
+	Username    string    `json:"username"`
+	Password    string    `json:"password"`
+	URL         string    `json:"url"`
+	Notes       string    `json:"notes"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Decrypted   bool      `json:"decrypted"`
+	HasPassword bool      `json:"has_password"`
 }
 
 // ErrorResponse represents an error from the API

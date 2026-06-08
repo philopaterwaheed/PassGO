@@ -22,8 +22,9 @@ type Vault struct {
 	Expiry     string `bson:"expiry" json:"expiry"`
 	CVV        string `bson:"cvv" json:"cvv"`
 	// Common fields
-	Notes     string    `bson:"notes" json:"notes"`
-	CreatedAt time.Time `bson:"created_at" json:"created_at"`
-	UpdatedAt time.Time `bson:"updated_at" json:"updated_at"`
-	Decrypted bool      `bson:"-" json:"decrypted"`
+	Notes       string    `bson:"notes" json:"notes"`
+	CreatedAt   time.Time `bson:"created_at" json:"created_at"`
+	UpdatedAt   time.Time `bson:"updated_at" json:"updated_at"`
+	Decrypted   bool      `bson:"-" json:"decrypted"`
+	HasPassword bool      `bson:"-" json:"has_password"`
 }

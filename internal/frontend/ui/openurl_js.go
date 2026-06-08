@@ -25,8 +25,10 @@ func OpenURL(url string) error {
 		return nil
 	}
 
-	opened := window.Call("open", url, "_blank", "noopener,noreferrer")
-	if !opened.Truthy() {
+	opened := window.Call("open", url, "_blank")
+	if opened.Truthy() {
+		opened.Set("opener", js.Null())
+	} else {
 		window.Get("location").Call("assign", url)
 	}
 	return nil

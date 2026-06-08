@@ -52,10 +52,15 @@ func (s *jsSessionStore) Save(sess Session) error {
 
 func (s *jsSessionStore) Clear() error {
 	ls, ok := localStorage()
-	if !ok {
-		return nil
+	if ok {
+		removePassGOStorageItems(ls)
 	}
-	ls.Call("removeItem", localStorageKey)
+
+	ss := js.Global().Get("sessionStorage")
+	if !ss.IsUndefined() && !ss.IsNull() {
+		removePassGOStorageItems(ss)
+	}
+
 	return nil
 }
 
@@ -66,4 +71,17 @@ func localStorage() (js.Value, bool) {
 		return js.Value{}, false
 	}
 	return storage, true
+}
+
+func removePassGOStorageItems(storage js.Value) {
+	for i := storage.Get("length").Int() - 1; i >= 0; i-- {
+		key := storage.Call("key", i)
+		if key.IsNull() || key.IsUndefined() {
+			continue
+		}
+		keyStr := key.String()
+		if keyStr == localStorageKey || len(keyStr) >= len("passgo.") && keyStr[:len("passgo.")] == "passgo." {
+			storage.Call("removeItem", keyStr)
+		}
+	}
 }

@@ -61,6 +61,12 @@ func NewVaultListPage() *VaultListPage {
 	}
 }
 
+func (p *VaultListPage) Reset() {
+	p.MasterPasswordInput.SetText("")
+	p.UnlockError = ""
+	p.rows = nil
+}
+
 func (p *VaultListPage) Action(gtx layout.Context, vaults []state.Vault, locked bool) VaultListAction {
 	var action VaultListAction
 

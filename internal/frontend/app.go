@@ -132,15 +132,17 @@ func loop(w *app.Window) error {
 				st.Route = state.RouteSettings
 			}
 			if shell.LogoutBtn.Clicked(gtx) {
-				st.Auth = state.Auth{}
-				st.Vaults = []state.Vault{}
-				st.VaultsLoaded = false
-				st.VaultsLoading = false
-				st.VaultsLoadError = ""
-				st.VaultsLoadDone = nil
 				apiClient.Token = ""
+				apiClient.HTTPClient.CloseIdleConnections()
 				_ = sessionStore.Clear()
-				st.Route = state.RouteWelcome
+				st.ClearSessionCache()
+				loginPage.Reset()
+				registerPage.Reset()
+				forgotPasswordPage.Reset()
+				vaultListPage.Reset()
+				vaultAddPage.Reset(nil)
+				vaultDetailPage.Reset()
+				settingsPage.Reset()
 			}
 
 			// Layout.

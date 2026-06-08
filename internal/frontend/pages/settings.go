@@ -59,6 +59,13 @@ func (p *SettingsPage) ClearMasterPasswordFields() {
 	p.ConfirmMasterPasswordInput.SetText("")
 }
 
+func (p *SettingsPage) Reset() {
+	p.ClearMasterPasswordFields()
+	p.ErrorMsg = ""
+	p.SuccessMsg = ""
+	p.IsSaving = false
+}
+
 func (p *SettingsPage) Layout(gtx layout.Context, th *material.Theme, email string, apiBaseURL string, darkMode *bool) (layout.Dimensions, bool, SettingsAction) {
 	if darkMode != nil && !p.initialized {
 		p.DarkMode.Value = *darkMode

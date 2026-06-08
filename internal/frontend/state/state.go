@@ -78,6 +78,15 @@ func (s *AppState) IsAuthed() bool {
 	return s.Auth.Token != ""
 }
 
+func (s *AppState) ClearSessionCache() {
+	darkMode := s.DarkMode
+	*s = AppState{
+		Route:    RouteWelcome,
+		Nav:      NavVault,
+		DarkMode: darkMode,
+	}
+}
+
 func (s *AppState) AddVault(v Vault) {
 	if v.ID == "" {
 		v.ID = NewVaultID()

@@ -36,13 +36,17 @@ type VaultListPage struct {
 	List                widget.List
 	UnlockError         string
 
-	cardClicks    []widget.Clickable
-	editClicks    []widget.Clickable
-	deleteClicks  []widget.Clickable
-	showClicks    []widget.Clickable
-	urlClicks     []widget.Clickable
-	urlOpenClicks []widget.Clickable
-	showPassword  []bool
+	rows map[string]*vaultListRow
+}
+
+type vaultListRow struct {
+	cardClick    widget.Clickable
+	editClick    widget.Clickable
+	deleteClick  widget.Clickable
+	showClick    widget.Clickable
+	urlClick     widget.Clickable
+	urlOpenClick widget.Clickable
+	showPassword bool
 }
 
 func NewVaultListPage() *VaultListPage {
@@ -56,7 +60,7 @@ func NewVaultListPage() *VaultListPage {
 	}
 }
 
-func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []state.Vault, loading bool, loadError string, locked bool) (layout.Dimensions, VaultListAction) {
+func (p *VaultListPage) Action(gtx layout.Context, vaults []state.Vault, locked bool) VaultListAction {
 	var action VaultListAction
 
 	for p.AddBtn.Clicked(gtx) {
@@ -71,44 +75,50 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 	}
 
 	if locked {
-		return p.unlockLayout(gtx, th), action
+		return action
 	}
 
-	ensureClickables(&p.cardClicks, len(vaults))
-	ensureClickables(&p.editClicks, len(vaults))
-	ensureClickables(&p.deleteClicks, len(vaults))
-	ensureClickables(&p.showClicks, len(vaults))
-	ensureClickables(&p.urlClicks, len(vaults))
-	ensureClickables(&p.urlOpenClicks, len(vaults))
-	ensureBools(&p.showPassword, len(vaults))
+	p.pruneRows(vaults)
 
 	for i := range vaults {
-		for p.showClicks[i].Clicked(gtx) {
+		row := p.row(vaults[i].ID)
+
+		for row.showClick.Clicked(gtx) {
 			if !vaults[i].Decrypted {
 				action.OpenID = vaults[i].ID
 				continue
 			}
-			p.showPassword[i] = !p.showPassword[i]
+			row.showPassword = !row.showPassword
 		}
-		for p.deleteClicks[i].Clicked(gtx) {
+		for row.deleteClick.Clicked(gtx) {
 			action.DeleteID = vaults[i].ID
 		}
-		for p.editClicks[i].Clicked(gtx) {
+		for row.editClick.Clicked(gtx) {
 			action.EditID = vaults[i].ID
 		}
-		for p.cardClicks[i].Clicked(gtx) {
+		for row.cardClick.Clicked(gtx) {
 			action.OpenID = vaults[i].ID
 		}
-		for p.urlClicks[i].Clicked(gtx) {
+		for row.urlClick.Clicked(gtx) {
 			if url := ui.NormalizeURL(vaults[i].URL); url != "" {
 				ui.OpenURLLogged(url)
 			}
 		}
-		for p.urlOpenClicks[i].Clicked(gtx) {
+		for row.urlOpenClick.Clicked(gtx) {
 			if url := ui.NormalizeURL(vaults[i].URL); url != "" {
 				ui.OpenURLLogged(url)
 			}
 		}
+	}
+
+	return action
+}
+
+func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []state.Vault, loading bool, loadError string, locked bool) (layout.Dimensions, VaultListAction) {
+	action := p.Action(gtx, vaults, locked)
+
+	if locked {
+		return p.unlockLayout(gtx, th), action
 	}
 
 	dims := layout.Flex{Axis: layout.Vertical}.Layout(gtx,
@@ -139,22 +149,44 @@ func (p *VaultListPage) Layout(gtx layout.Context, th *material.Theme, vaults []
 
 			return p.List.Layout(gtx, len(vaults), func(gtx layout.Context, i int) layout.Dimensions {
 				v := vaults[i]
-				click := &p.cardClicks[i]
-				editClick := &p.editClicks[i]
-				deleteClick := &p.deleteClicks[i]
-				showClick := &p.showClicks[i]
-				urlClick := &p.urlClicks[i]
-				urlOpenClick := &p.urlOpenClicks[i]
-				isShowing := p.showPassword[i]
+				row := p.row(v.ID)
 
 				return layout.Inset{Bottom: unit.Dp(10)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return card(gtx, th, v, click, editClick, deleteClick, showClick, urlClick, urlOpenClick, isShowing)
+					return card(gtx, th, v, &row.cardClick, &row.editClick, &row.deleteClick, &row.showClick, &row.urlClick, &row.urlOpenClick, row.showPassword)
 				})
 			})
 		}),
 	)
 
 	return dims, action
+}
+
+func (p *VaultListPage) row(id string) *vaultListRow {
+	if p.rows == nil {
+		p.rows = make(map[string]*vaultListRow)
+	}
+	row := p.rows[id]
+	if row == nil {
+		row = &vaultListRow{}
+		p.rows[id] = row
+	}
+	return row
+}
+
+func (p *VaultListPage) pruneRows(vaults []state.Vault) {
+	if len(p.rows) == 0 {
+		return
+	}
+
+	seen := make(map[string]struct{}, len(vaults))
+	for _, v := range vaults {
+		seen[v.ID] = struct{}{}
+	}
+	for id := range p.rows {
+		if _, ok := seen[id]; !ok {
+			delete(p.rows, id)
+		}
+	}
 }
 
 func (p *VaultListPage) unlockLayout(gtx layout.Context, th *material.Theme) layout.Dimensions {
@@ -240,24 +272,6 @@ func loadingState(gtx layout.Context, th *material.Theme) layout.Dimensions {
 			}),
 		)
 	})
-}
-
-func ensureBools(dst *[]bool, n int) {
-	if len(*dst) >= n {
-		return
-	}
-	for i := len(*dst); i < n; i++ {
-		*dst = append(*dst, false)
-	}
-}
-
-func ensureClickables(dst *[]widget.Clickable, n int) {
-	if len(*dst) >= n {
-		return
-	}
-	for i := len(*dst); i < n; i++ {
-		*dst = append(*dst, widget.Clickable{})
-	}
 }
 
 func card(gtx layout.Context, th *material.Theme, v state.Vault, openBtn, editBtn, delBtn, showBtn, urlBtn, urlOpenBtn *widget.Clickable, isShowing bool) layout.Dimensions {
@@ -393,6 +407,8 @@ func vaultSummary(gtx layout.Context, th *material.Theme, v state.Vault, openBtn
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return openBtn.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.X = gtx.Constraints.Max.X
+				gtx.Constraints.Min.Y = max(gtx.Constraints.Min.Y, gtx.Dp(unit.Dp(56)))
 				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return vaultAvatar(gtx, th, v.Title)

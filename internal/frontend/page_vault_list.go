@@ -24,6 +24,101 @@ func handleVaultListPage(
 	apiClient *api.Client,
 	invalidate func(),
 ) bool {
+	handleAction := func(action pages.VaultListAction) bool {
+		if action.Unlock {
+			if action.UnlockPassword == "" {
+				page.UnlockError = "Master password is required"
+				invalidate()
+				return true
+			}
+			st.Auth.MasterPassword = action.UnlockPassword
+			page.UnlockError = ""
+			st.VaultsLoaded = false
+			st.VaultsLoading = false
+			st.VaultsLoadError = ""
+			st.VaultsLoadDone = nil
+			invalidate()
+			return true
+		}
+
+		if action.Retry {
+			st.VaultsLoaded = false
+			st.VaultsLoading = false
+			st.VaultsLoadError = ""
+			st.VaultsLoadDone = nil
+			invalidate()
+			return true
+		}
+
+		if action.Add {
+			st.Nav = state.NavVault
+			st.Route = state.RouteVaultAdd
+			vaultAddPage.Reset(nil)
+			invalidate()
+			return true
+		}
+
+		if action.DeleteID != "" {
+			go func(id string) {
+				err := apiClient.DeleteVault(id)
+				if err != nil {
+					log.Printf("Failed to delete vault: %v", err)
+					invalidate()
+					return
+				}
+				st.DeleteVault(id)
+				invalidate()
+			}(action.DeleteID)
+			return true
+		}
+
+		if action.EditID != "" {
+			st.SelectedVaultID = action.EditID
+			// finding the vault to pass to reset
+			var vToEdit *state.Vault
+			for _, v := range st.Vaults {
+				if v.ID == action.EditID {
+					vToEdit = &v
+					break
+				}
+			}
+			if vToEdit != nil && !vToEdit.Decrypted {
+				go func(id string, masterPassword string) {
+					resp, err := apiClient.GetVault(id, masterPassword)
+					if err != nil {
+						log.Printf("Failed to fetch vault before edit: %v", err)
+						invalidate()
+						return
+					}
+
+					v := apiVaultToState(*resp)
+					st.UpdateVault(v)
+					st.Nav = state.NavVault
+					st.Route = state.RouteVaultAdd
+					vaultAddPage.Reset(&v)
+					invalidate()
+				}(action.EditID, st.Auth.MasterPassword)
+				return true
+			}
+			st.Nav = state.NavVault
+			st.Route = state.RouteVaultAdd
+			vaultAddPage.Reset(vToEdit)
+			invalidate()
+			return true
+		}
+
+		if action.OpenID != "" {
+			st.SelectedVaultID = action.OpenID
+			st.Nav = state.NavVault
+			st.Route = state.RouteVaultDetail
+			vaultDetailPage.Reset()
+			invalidate()
+			return true
+		}
+
+		return false
+	}
+
 	if st.VaultsLoadDone != nil {
 		select {
 		case result := <-st.VaultsLoadDone:
@@ -76,6 +171,13 @@ func handleVaultListPage(
 		}()
 	}
 
+	if handleAction(page.Action(gtx, st.Vaults, st.Auth.MasterPassword == "")) {
+		if st.Route == state.RouteVaultDetail {
+			return handleVaultDetailPage(gtx, th, st, shell, vaultDetailPage, apiClient, invalidate)
+		}
+		return true
+	}
+
 	var action pages.VaultListAction
 	shell.Layout(gtx, th, st, "Vaults", func(gtx layout.Context) layout.Dimensions {
 		var d layout.Dimensions
@@ -83,94 +185,7 @@ func handleVaultListPage(
 		return d
 	})
 
-	if action.Unlock {
-		if action.UnlockPassword == "" {
-			page.UnlockError = "Master password is required"
-			invalidate()
-			return true
-		}
-		st.Auth.MasterPassword = action.UnlockPassword
-		page.UnlockError = ""
-		st.VaultsLoaded = false
-		st.VaultsLoading = false
-		st.VaultsLoadError = ""
-		st.VaultsLoadDone = nil
-		invalidate()
-		return true
-	}
-
-	if action.Retry {
-		st.VaultsLoaded = false
-		st.VaultsLoading = false
-		st.VaultsLoadError = ""
-		st.VaultsLoadDone = nil
-		invalidate()
-		return true
-	}
-
-	if action.Add {
-		st.Nav = state.NavVault
-		st.Route = state.RouteVaultAdd
-		vaultAddPage.Reset(nil)
-		invalidate()
-		return true
-	}
-
-	if action.DeleteID != "" {
-		go func(id string) {
-			err := apiClient.DeleteVault(id)
-			if err != nil {
-				log.Printf("Failed to delete vault: %v", err)
-				invalidate()
-				return
-			}
-			st.DeleteVault(id)
-			invalidate()
-		}(action.DeleteID)
-		return true
-	}
-
-	if action.EditID != "" {
-		st.SelectedVaultID = action.EditID
-		// finding the vault to pass to reset
-		var vToEdit *state.Vault
-		for _, v := range st.Vaults {
-			if v.ID == action.EditID {
-				vToEdit = &v
-				break
-			}
-		}
-		if vToEdit != nil && !vToEdit.Decrypted {
-			go func(id string, masterPassword string) {
-				resp, err := apiClient.GetVault(id, masterPassword)
-				if err != nil {
-					log.Printf("Failed to fetch vault before edit: %v", err)
-					invalidate()
-					return
-				}
-
-				v := apiVaultToState(*resp)
-				st.UpdateVault(v)
-				st.Nav = state.NavVault
-				st.Route = state.RouteVaultAdd
-				vaultAddPage.Reset(&v)
-				invalidate()
-			}(action.EditID, st.Auth.MasterPassword)
-			return true
-		}
-		st.Nav = state.NavVault
-		st.Route = state.RouteVaultAdd
-		vaultAddPage.Reset(vToEdit)
-		invalidate()
-		return true
-	}
-
-	if action.OpenID != "" {
-		st.SelectedVaultID = action.OpenID
-		st.Nav = state.NavVault
-		st.Route = state.RouteVaultDetail
-		vaultDetailPage.Reset()
-		invalidate()
+	if handleAction(action) {
 		return true
 	}
 

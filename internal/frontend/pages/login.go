@@ -10,14 +10,16 @@ import (
 )
 
 type LoginPage struct {
-	EmailInput    widget.Editor
-	PasswordInput widget.Editor
-	LoginBtn      widget.Clickable
-	ForgotBtn     widget.Clickable
-	BackBtn       widget.Clickable
-	ErrorMsg      string
-	SuccessMsg    string
-	IsLoading     bool
+	EmailInput      widget.Editor
+	PasswordInput   widget.Editor
+	ShowPasswordBtn widget.Clickable
+	ShowPassword    bool
+	LoginBtn        widget.Clickable
+	ForgotBtn       widget.Clickable
+	BackBtn         widget.Clickable
+	ErrorMsg        string
+	SuccessMsg      string
+	IsLoading       bool
 }
 
 func NewLoginPage() *LoginPage {
@@ -37,6 +39,8 @@ func NewLoginPage() *LoginPage {
 func (p *LoginPage) Reset() {
 	p.EmailInput.SetText("")
 	p.PasswordInput.SetText("")
+	p.ShowPassword = false
+	p.PasswordInput.Mask = '*'
 	p.ErrorMsg = ""
 	p.SuccessMsg = ""
 	p.IsLoading = false
@@ -85,9 +89,7 @@ func (p *LoginPage) Layout(gtx layout.Context, th *material.Theme) layout.Dimens
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				e := material.Editor(th, &p.PasswordInput, "Password")
-				e.TextSize = unit.Sp(16)
-				return e.Layout(gtx)
+				return ui.PasswordEditor(gtx, th, &p.PasswordInput, "Password", &p.ShowPasswordBtn, &p.ShowPassword)
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(6)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {

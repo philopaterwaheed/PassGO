@@ -30,12 +30,14 @@ type VaultListAction struct {
 }
 
 type VaultListPage struct {
-	AddBtn              widget.Clickable
-	RetryBtn            widget.Clickable
-	UnlockBtn           widget.Clickable
-	MasterPasswordInput widget.Editor
-	List                widget.List
-	UnlockError         string
+	AddBtn                widget.Clickable
+	RetryBtn              widget.Clickable
+	UnlockBtn             widget.Clickable
+	MasterPasswordInput   widget.Editor
+	ShowMasterPasswordBtn widget.Clickable
+	ShowMasterPassword    bool
+	List                  widget.List
+	UnlockError           string
 
 	rows map[string]*vaultListRow
 }
@@ -63,6 +65,8 @@ func NewVaultListPage() *VaultListPage {
 
 func (p *VaultListPage) Reset() {
 	p.MasterPasswordInput.SetText("")
+	p.ShowMasterPassword = false
+	p.MasterPasswordInput.Mask = '*'
 	p.UnlockError = ""
 	p.rows = nil
 }
@@ -226,9 +230,7 @@ func (p *VaultListPage) unlockLayout(gtx layout.Context, th *material.Theme) lay
 
 		children = append(children,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				e := material.Editor(th, &p.MasterPasswordInput, "Master password")
-				e.TextSize = unit.Sp(16)
-				return e.Layout(gtx)
+				return ui.PasswordEditor(gtx, th, &p.MasterPasswordInput, "Master password", &p.ShowMasterPasswordBtn, &p.ShowMasterPassword)
 			}),
 			layout.Rigid(layout.Spacer{Height: unit.Dp(16)}.Layout),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -326,7 +328,7 @@ func card(gtx layout.Context, th *material.Theme, v state.Vault, row *vaultListR
 							return ui.SecondaryButton(gtx, th, &row.showClick, btnTxt)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							if !v.HasPassword{
+							if !v.HasPassword {
 								return layout.Dimensions{}
 							}
 							return layout.Spacer{Width: unit.Dp(6)}.Layout(gtx)

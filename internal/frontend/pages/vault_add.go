@@ -88,15 +88,6 @@ func (p *VaultAddPage) TryBuildVault() (state.Vault, bool) {
 func (p *VaultAddPage) Layout(gtx layout.Context, th *material.Theme) (layout.Dimensions, VaultAddAction) {
 	var action VaultAddAction
 
-	for p.ShowPasswordBtn.Clicked(gtx) {
-		p.ShowPassword = !p.ShowPassword
-		if p.ShowPassword {
-			p.PasswordEd.Mask = 0
-		} else {
-			p.PasswordEd.Mask = '*'
-		}
-	}
-
 	for p.SaveBtn.Clicked(gtx) {
 		v, ok := p.TryBuildVault()
 		if ok {
@@ -134,21 +125,7 @@ func (p *VaultAddPage) Layout(gtx layout.Context, th *material.Theme) (layout.Di
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							e := material.Editor(th, &p.PasswordEd, "Password")
-							e.TextSize = unit.Sp(16)
-							return e.Layout(gtx)
-						}),
-						layout.Rigid(layout.Spacer{Width: unit.Dp(8)}.Layout),
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							btnTxt := "Show"
-							if p.ShowPassword {
-								btnTxt = "Hide"
-							}
-							return ui.GhostButton(gtx, th, &p.ShowPasswordBtn, btnTxt)
-						}),
-					)
+					return ui.PasswordEditor(gtx, th, &p.PasswordEd, "Password", &p.ShowPasswordBtn, &p.ShowPassword)
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {

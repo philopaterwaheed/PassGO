@@ -371,7 +371,11 @@ func (h *AuthHandler) ResetPasswordPage(c *gin.Context) {
 				.card { max-width: 420px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
 				label { display: block; margin-top: 12px; font-size: 14px; }
 				input { width: 100%; padding: 10px 12px; margin-top: 6px; border: 1px solid #d5d7db; border-radius: 8px; font-size: 16px; }
+				.password-field { position: relative; }
+				.password-field input { box-sizing: border-box; padding-right: 46px; }
 				button { width: 100%; margin-top: 18px; padding: 12px; border: 0; border-radius: 8px; background: #1f6feb; color: #fff; font-size: 16px; cursor: pointer; }
+				.password-field .eye-toggle { position: absolute; right: 6px; top: 6px; width: 36px; height: 36px; margin: 0; padding: 0; border: 0; border-radius: 8px; background: transparent; color: #4b5563; font-size: 18px; cursor: pointer; }
+				.password-field .eye-toggle:hover { background: #f3f4f6; }
 				button:disabled { opacity: 0.6; cursor: default; }
 				.msg { margin-top: 12px; font-size: 14px; }
 			</style>
@@ -381,9 +385,15 @@ func (h *AuthHandler) ResetPasswordPage(c *gin.Context) {
 				<h2>Reset your password</h2>
 				<p>Enter a new password to continue.</p>
 				<label for="password">New password</label>
-				<input id="password" type="password" autocomplete="new-password" />
+				<div class="password-field">
+					<input id="password" type="password" autocomplete="new-password" />
+					<button class="eye-toggle" type="button" data-target="password" aria-label="Show password">👁</button>
+				</div>
 				<label for="confirm">Confirm password</label>
-				<input id="confirm" type="password" autocomplete="new-password" />
+				<div class="password-field">
+					<input id="confirm" type="password" autocomplete="new-password" />
+					<button class="eye-toggle" type="button" data-target="confirm" aria-label="Show password">👁</button>
+				</div>
 				<button id="submit">Update password</button>
 				<div id="msg" class="msg"></div>
 			</div>
@@ -403,6 +413,15 @@ func (h *AuthHandler) ResetPasswordPage(c *gin.Context) {
 
 				var token = getAccessToken();
 				var msg = document.getElementById('msg');
+				Array.prototype.forEach.call(document.querySelectorAll('.eye-toggle'), function (button) {
+					button.addEventListener('click', function () {
+						var input = document.getElementById(button.getAttribute('data-target'));
+						var hidden = input.type === 'password';
+						input.type = hidden ? 'text' : 'password';
+						button.setAttribute('aria-label', hidden ? 'Hide password' : 'Show password');
+						button.textContent = hidden ? '◉' : '👁';
+					});
+				});
 				if (!token) {
 					msg.textContent = 'Invalid or expired reset link. Please request a new one.';
 					msg.style.color = '#b42318';

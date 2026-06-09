@@ -120,15 +120,21 @@ func (p *SettingsPage) Layout(gtx layout.Context, th *material.Theme, email stri
 				layout.Rigid(material.Body1(th, "Master password").Layout),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return ui.PasswordEditor(gtx, th, &p.CurrentMasterPasswordInput, "Current master password", &p.ShowCurrentMasterBtn, &p.ShowCurrentMaster)
+					return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return ui.PasswordEditor(gtx, th, &p.CurrentMasterPasswordInput, "Current master password", &p.ShowCurrentMasterBtn, &p.ShowCurrentMaster)
+					})
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return ui.PasswordEditor(gtx, th, &p.NewMasterPasswordInput, "New master password", &p.ShowNewMasterBtn, &p.ShowNewMaster)
+					return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return ui.PasswordEditor(gtx, th, &p.NewMasterPasswordInput, "New master password", &p.ShowNewMasterBtn, &p.ShowNewMaster)
+					})
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return ui.PasswordEditor(gtx, th, &p.ConfirmMasterPasswordInput, "Confirm new master password", &p.ShowConfirmMasterBtn, &p.ShowConfirmMaster)
+					return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return ui.PasswordEditor(gtx, th, &p.ConfirmMasterPasswordInput, "Confirm new master password", &p.ShowConfirmMasterBtn, &p.ShowConfirmMaster)
+					})
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {

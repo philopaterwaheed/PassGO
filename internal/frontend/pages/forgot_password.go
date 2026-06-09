@@ -71,6 +71,7 @@ func (p *ForgotPasswordPage) Layout(gtx layout.Context, th *material.Theme) layo
 
 		children = append(children,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.X = gtx.Constraints.Max.X
 				e := material.Editor(th, &p.EmailInput, "Email")
 				e.TextSize = unit.Sp(16)
 				return e.Layout(gtx)

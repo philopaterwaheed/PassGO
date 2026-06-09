@@ -28,8 +28,9 @@ type VaultAddPage struct {
 	SaveBtn widget.Clickable
 	BackBtn widget.Clickable
 
-	ShowPasswordBtn widget.Clickable
-	ShowPassword    bool
+	GeneratePasswordBtn widget.Clickable
+	ShowPasswordBtn     widget.Clickable
+	ShowPassword        bool
 
 	ErrorMsg  string
 	IsLoading bool
@@ -100,6 +101,18 @@ func (p *VaultAddPage) Layout(gtx layout.Context, th *material.Theme) (layout.Di
 		action.Back = true
 	}
 
+	for p.GeneratePasswordBtn.Clicked(gtx) {
+		password, err := ui.GeneratePassword()
+		if err != nil {
+			p.ErrorMsg = "Failed to generate password"
+			continue
+		}
+		p.PasswordEd.SetText(password)
+		p.ShowPassword = true
+		p.PasswordEd.Mask = 0
+		p.ErrorMsg = ""
+	}
+
 	dims := layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(520)))
 		return ui.SurfacePanel(gtx, ui.SurfaceColor, ui.RadiusLarge, layout.UniformInset(unit.Dp(24)), func(gtx layout.Context) layout.Dimensions {
@@ -113,28 +126,34 @@ func (p *VaultAddPage) Layout(gtx layout.Context, th *material.Theme) (layout.Di
 					return layout.Inset{Bottom: unit.Dp(10)}.Layout(gtx, lbl.Layout)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					gtx.Constraints.Min.X = gtx.Constraints.Max.X
 					e := material.Editor(th, &p.TitleEd, "Title")
 					e.TextSize = unit.Sp(16)
 					return e.Layout(gtx)
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					gtx.Constraints.Min.X = gtx.Constraints.Max.X
 					e := material.Editor(th, &p.UsernameEd, "Username")
 					e.TextSize = unit.Sp(16)
 					return e.Layout(gtx)
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return ui.PasswordEditor(gtx, th, &p.PasswordEd, "Password", &p.ShowPasswordBtn, &p.ShowPassword)
+					return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return ui.PasswordEditorWithGenerate(gtx, th, &p.PasswordEd, "Password", &p.ShowPasswordBtn, &p.ShowPassword, &p.GeneratePasswordBtn)
+					})
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					gtx.Constraints.Min.X = gtx.Constraints.Max.X
 					e := material.Editor(th, &p.URLEd, "URL")
 					e.TextSize = unit.Sp(16)
 					return e.Layout(gtx)
 				}),
 				layout.Rigid(layout.Spacer{Height: unit.Dp(10)}.Layout),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					gtx.Constraints.Min.X = gtx.Constraints.Max.X
 					e := material.Editor(th, &p.NotesEd, "Notes")
 					e.TextSize = unit.Sp(16)
 					height := gtx.Dp(unit.Dp(96))

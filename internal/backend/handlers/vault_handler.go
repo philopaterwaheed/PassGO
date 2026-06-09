@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/philopaterwaheed/passGO/internal/backend/config"
 	"github.com/philopaterwaheed/passGO/internal/backend/crypto"
 	"github.com/philopaterwaheed/passGO/internal/backend/database"
 	"github.com/philopaterwaheed/passGO/internal/backend/models"
@@ -35,6 +37,43 @@ func NewVaultHandler() *VaultHandler {
 
 func getMasterPassword(c *gin.Context) string {
 	return c.GetHeader("X-Master-Password")
+}
+
+func vaultDataSize(v models.Vault) int {
+	size := 0
+	fields := []string{
+		v.Type,
+		v.Title,
+		v.Username,
+		v.Password,
+		v.URL,
+		v.Cardholder,
+		v.Number,
+		v.Expiry,
+		v.CVV,
+		v.Notes,
+	}
+	for _, field := range fields {
+		size += len(field)
+	}
+	return size
+}
+
+func validateVaultDataSize(c *gin.Context, vault models.Vault) bool {
+	maxBytes := config.MaxVaultDataBytes
+	if maxBytes <= 0 {
+		return true
+	}
+
+	size := vaultDataSize(vault)
+	if size <= maxBytes {
+		return true
+	}
+
+	c.JSON(http.StatusRequestEntityTooLarge, gin.H{
+		"error": fmt.Sprintf("Vault data is too large; limit is %d bytes", maxBytes),
+	})
+	return false
 }
 
 func (h *VaultHandler) getVaultKey(c *gin.Context, userID string) ([]byte, bool) {
@@ -220,6 +259,23 @@ func (h *VaultHandler) CreateVault(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if !validateVaultDataSize(c, req) {
+		return
+	}
+
+	if config.MaxVaultsPerUser > 0 {
+		count, err := h.repo.CountVaultsByUserID(c.Request.Context(), userID.(string))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check vault limit"})
+			return
+		}
+		if count >= int64(config.MaxVaultsPerUser) {
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error": fmt.Sprintf("Vault limit reached; maximum is %d vaults", config.MaxVaultsPerUser),
+			})
+			return
+		}
+	}
 
 	// Encrypt sensitive fields
 	var err error
@@ -353,6 +409,9 @@ func (h *VaultHandler) UpdateVault(c *gin.Context) {
 	var req models.Vault
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if !validateVaultDataSize(c, req) {
 		return
 	}
 

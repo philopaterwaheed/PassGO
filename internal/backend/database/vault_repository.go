@@ -54,6 +54,11 @@ func (r *VaultRepository) GetVaultsByUserID(ctx context.Context, userID string) 
 	return vaults, nil
 }
 
+// CountVaultsByUserID counts vaults owned by a specific user.
+func (r *VaultRepository) CountVaultsByUserID(ctx context.Context, userID string) (int64, error) {
+	return r.collection.CountDocuments(ctx, bson.M{"user_id": userID})
+}
+
 // GetVaultByID retrieves a specific vault by its ID
 func (r *VaultRepository) GetVaultByID(ctx context.Context, id bson.ObjectID) (*models.Vault, error) {
 	var vault models.Vault
@@ -67,7 +72,7 @@ func (r *VaultRepository) GetVaultByID(ctx context.Context, id bson.ObjectID) (*
 // UpdateVault updates an existing vault in the database
 func (r *VaultRepository) UpdateVault(ctx context.Context, id bson.ObjectID, vault *models.Vault) error {
 	vault.UpdatedAt = time.Now()
-	
+
 	update := bson.M{
 		"$set": bson.M{
 			"title":      vault.Title,

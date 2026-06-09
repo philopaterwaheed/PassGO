@@ -50,6 +50,8 @@ go build -o passGo ./cmd/frontend
 Configuration:
 
 - `PASSGO_API_BASE_URL` (optional): Backend base URL used by the frontend (defaults to `http://localhost:8080`).
+- `MAX_VAULTS_PER_USER` (optional): Maximum vault entries a user can create (defaults to `100`; set to `0` to disable).
+- `MAX_VAULT_DATA_BYTES` (optional): Maximum plaintext vault field data per create/update request (defaults to `16384`; set to `0` to disable).
 
 ### Running
 

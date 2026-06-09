@@ -25,6 +25,9 @@ var (
 	RateLimitRedisURL      string
 	RateLimitRequests      int
 	RateLimitWindowSeconds int
+
+	MaxVaultsPerUser  int
+	MaxVaultDataBytes int
 )
 
 func init() {
@@ -45,6 +48,8 @@ func init() {
 	RateLimitRedisURL = getEnv("UPSTASH_REDIS_URL", getEnv("REDIS_URL", ""))
 	RateLimitRequests = getEnvAsInt("RATE_LIMIT_REQUESTS", 20)
 	RateLimitWindowSeconds = getEnvAsInt("RATE_LIMIT_WINDOW_SECONDS", 60)
+	MaxVaultsPerUser = getEnvAsInt("MAX_VAULTS_PER_USER", 50)
+	MaxVaultDataBytes = getEnvAsInt("MAX_VAULT_DATA_BYTES", 16*1024)
 }
 
 func getEnv(key, defaultValue string) string {

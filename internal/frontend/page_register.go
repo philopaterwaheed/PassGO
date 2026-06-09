@@ -1,7 +1,6 @@
 package frontend
 
 import (
-	"log"
 	"strings"
 
 	"gioui.org/layout"
@@ -67,7 +66,6 @@ func handleRegisterPage(
 				page.ConfirmPasswordInput.SetText("")
 				page.MasterPasswordInput.SetText("")
 				page.ConfirmMasterPasswordInput.SetText("")
-				log.Printf("Registered successfully: %+v", resp.User)
 				invalidate()
 			}()
 		}

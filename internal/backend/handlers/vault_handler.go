@@ -120,7 +120,7 @@ func decryptVaultFields(vault *models.Vault, vaultKey []byte) bool {
 		if err == nil {
 			vault.Password = dec
 		} else {
-			log.Printf("Failed to decrypt password for vault %s\n", vault.ID.Hex())
+			log.Printf("Failed to decrypt vault password field")
 			vault.Password = ""
 			decrypted = false
 		}
@@ -131,7 +131,7 @@ func decryptVaultFields(vault *models.Vault, vaultKey []byte) bool {
 		if err == nil {
 			vault.Notes = dec
 		} else {
-			log.Printf("Failed to decrypt notes for vault %s\n", vault.ID.Hex())
+			log.Printf("Failed to decrypt vault notes field")
 			vault.Notes = ""
 			decrypted = false
 		}

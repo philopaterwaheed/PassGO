@@ -57,14 +57,14 @@ func NewIPRateLimiter(options RateLimitOptions) (gin.HandlerFunc, error) {
 		key := fmt.Sprintf("%s:%s", options.KeyPrefix, ip)
 		count, err := client.Incr(ctx, key).Result()
 		if err != nil {
-			log.Printf("Warning: rate limit check failed for IP %s: %v", ip, err)
+			log.Printf("Warning: rate limit check failed: %v", err)
 			c.Next()
 			return
 		}
 
 		if count == 1 {
 			if err := client.Expire(ctx, key, window).Err(); err != nil {
-				log.Printf("Warning: rate limit expiry failed for IP %s: %v", ip, err)
+				log.Printf("Warning: rate limit expiry failed: %v", err)
 			}
 		}
 

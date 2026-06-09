@@ -31,6 +31,6 @@ func NormalizeURL(raw string) string {
 
 func OpenURLLogged(raw string) {
 	if err := OpenURL(raw); err != nil {
-		log.Printf("Failed to open URL %q: %v", NormalizeURL(raw), err)
+		log.Printf("Failed to open URL: %v", err)
 	}
 }

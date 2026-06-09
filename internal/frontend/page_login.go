@@ -1,8 +1,6 @@
 package frontend
 
 import (
-	"log"
-
 	"gioui.org/layout"
 	"gioui.org/widget/material"
 
@@ -65,7 +63,6 @@ func handleLoginPage(
 				page.IsLoading = false
 				st.Nav = state.NavVault
 				st.Route = state.RouteVaultList
-				log.Printf("Logged in successfully: %+v", resp.User)
 				invalidate()
 			}()
 		}

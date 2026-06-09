@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -24,7 +23,7 @@ type AuthHandler struct {
 func NewAuthHandler() (*AuthHandler, error) {
 	supabaseClient, err := auth.NewSupabaseClient()
 	if err != nil {
-		fmt.Println("Error creating Supabase client:", err)
+		log.Printf("Error creating Supabase client: %v", err)
 		return nil, err
 	}
 
@@ -52,7 +51,7 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 	// Register with Supabase
 	supabaseResp, err := h.supabase.SignUp(req.Email, req.Password)
 	if err != nil {
-		fmt.Printf("Supabase SignUp Error: %v\n", err) // Log error
+		log.Printf("Supabase signup failed: %v", err)
 		if errors.Is(err, auth.ErrUserAlreadyExists) {
 			c.JSON(http.StatusConflict, gin.H{"error": "User already exists in authentication system"})
 			return
@@ -88,7 +87,7 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 	}
 
 	if err := h.repo.CreateUser(c.Request.Context(), user); err != nil {
-		fmt.Printf("CreateUser Error: %v\n", err) // Log error
+		log.Printf("Create user failed: %v", err)
 		if errors.Is(err, database.ErrDuplicateEmail) {
 			c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
 			return
@@ -113,7 +112,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Authenticate with Supabase
 	supabaseResp, err := h.supabase.SignIn(req.Email, req.Password)
-	fmt.Println("Supabase Login Response:", supabaseResp)
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidCredentials) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
@@ -344,17 +342,13 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	log.Printf("ForgotPassword request for email=%s", req.Email)
-
 	// Send password reset email via Supabase
 	// Don't check if user exists for security reasons
 	if err := h.supabase.ResetPassword(req.Email); err != nil {
-		log.Printf("ForgotPassword supabase error for email=%s: %v", req.Email, err)
+		log.Printf("ForgotPassword supabase error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send password reset email"})
 		return
 	}
-
-	log.Printf("ForgotPassword email sent for email=%s", req.Email)
 	c.JSON(http.StatusOK, gin.H{"message": "If your email is registered, you will receive a password reset email"})
 }
 

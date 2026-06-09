@@ -109,7 +109,6 @@ func (s *SupabaseClient) SignUp(email, password string) (*SupabaseAuthResponse, 
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
-	fmt.Println(string(respBody))
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +168,6 @@ func (s *SupabaseClient) SignIn(email, password string) (*SupabaseAuthResponse, 
 		return nil, err
 	}
 
-	fmt.Println(string(respBody))
 	if resp.StatusCode >= 400 {
 		var errResp SupabaseErrorResponse
 		if err := json.Unmarshal(respBody, &errResp); err == nil {
@@ -340,13 +338,12 @@ func (s *SupabaseClient) ResetPassword(email string) error {
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
+	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
 		return err
 	}
 
 	if resp.StatusCode >= 400 {
-		log.Printf("Supabase recover failed status=%d body=%s", resp.StatusCode, string(respBody))
+		log.Printf("Supabase recover failed status=%d", resp.StatusCode)
 		return errors.New("failed to send password reset email")
 	}
 

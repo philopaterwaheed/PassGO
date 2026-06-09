@@ -19,18 +19,6 @@ type User struct {
 	IsActive      bool          `bson:"is_active" json:"is_active"`
 }
 
-// CreateUserRequest represents the request to create a new user
-type CreateUserRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
-}
-
-// UpdateUserRequest represents the request to update a user
-type UpdateUserRequest struct {
-	Email    string `json:"email,omitempty" binding:"omitempty,email"`
-	IsActive *bool  `json:"is_active,omitempty"`
-}
-
 // LoginRequest represents the login credentials
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`

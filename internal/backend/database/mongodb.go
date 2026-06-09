@@ -69,16 +69,3 @@ func GetCollection(collectionName string) *mongo.Collection {
 	}
 	return database.Collection(collectionName)
 }
-
-// HealthCheck verifies the database connection is alive
-func HealthCheck() error {
-	if client == nil {
-		return fmt.Errorf("database client not initialized")
-	}
-
-	if err := client.Ping(context.TODO(), readpref.Primary()); err != nil {
-		return fmt.Errorf("database health check failed: %w", err)
-	}
-
-	return nil
-}

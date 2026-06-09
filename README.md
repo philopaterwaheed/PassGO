@@ -62,10 +62,6 @@ Configuration:
 # Server starts on http://localhost:8080
 ```
 
-Available endpoints:
-- `GET /health` - Health check
-- `GET /api/ping` - Ping endpoint
-
 #### Frontend Application
 
 ```bash

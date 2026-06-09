@@ -3,7 +3,6 @@ package backend
 import (
 	"context"
 	"log"
-	"net/http"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -49,23 +48,6 @@ func SetupRouter() *gin.Engine {
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
 	router.Use(cors.New(corsConfig))
 
-	// Health check endpoint
-	router.GET("/health", func(c *gin.Context) {
-		status := "healthy"
-		dbStatus := "connected"
-
-		// Check database connection
-		if err := database.HealthCheck(); err != nil {
-			status = "degraded"
-			dbStatus = "disconnected"
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"status":   status,
-			"database": dbStatus,
-		})
-	})
-
 	// API routes group
 	api := router.Group("/api")
 	rateLimiter, err := middleware.NewIPRateLimiter(middleware.RateLimitOptions{
@@ -84,12 +66,6 @@ func SetupRouter() *gin.Engine {
 		)
 	}
 	{
-		api.GET("/ping", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{
-				"message": "pong",
-			})
-		})
-
 		// Auth routes (public)
 		authHandler, err := handlers.NewAuthHandler()
 		if err != nil {
@@ -110,18 +86,6 @@ func SetupRouter() *gin.Engine {
 				// Protected auth routes
 				auth.GET("/me", middleware.AuthMiddleware(), authHandler.GetCurrentUser)
 			}
-		}
-
-		// User routes
-		userHandler := handlers.NewUserHandler()
-		users := api.Group("/users")
-		{
-			users.POST("", userHandler.CreateUser)
-			users.GET("", userHandler.GetAllUsers)
-			users.GET("/:id", userHandler.GetUser)
-			users.PUT("/:id", userHandler.UpdateUser)
-			users.DELETE("/:id", userHandler.DeleteUser)
-			users.GET("/email/:email", userHandler.GetUserByEmail)
 		}
 
 		// Vault routes

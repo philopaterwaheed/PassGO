@@ -1,0 +1,9 @@
+.git
+.github
+.env
+.env.*
+Dockerfile
+dist
+tmp
+web/main.wasm
+*.log

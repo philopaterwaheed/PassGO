@@ -39,15 +39,15 @@ func SetupRouter() *gin.Engine {
 	router := gin.Default()
 
 	// CORS configuration
-	config := cors.DefaultConfig()
-	config.AllowAllOrigins = false
-	config.AllowCredentials = true
-	config.AllowOriginFunc = func(origin string) bool {
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowAllOrigins = false
+	corsConfig.AllowCredentials = true
+	corsConfig.AllowOriginFunc = func(origin string) bool {
 		return true
 	}
-	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept", "X-Master-Password"}
-	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
-	router.Use(cors.New(config))
+	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Accept", "X-Master-Password"}
+	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
+	router.Use(cors.New(corsConfig))
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
@@ -68,6 +68,21 @@ func SetupRouter() *gin.Engine {
 
 	// API routes group
 	api := router.Group("/api")
+	rateLimiter, err := middleware.NewIPRateLimiter(middleware.RateLimitOptions{
+		RedisURL:      config.RateLimitRedisURL,
+		Requests:      config.RateLimitRequests,
+		WindowSeconds: config.RateLimitWindowSeconds,
+	})
+	if err != nil {
+		log.Printf("Warning: Rate limiter not initialized: %v", err)
+	} else if rateLimiter != nil {
+		api.Use(rateLimiter)
+		log.Printf(
+			"Rate limiter enabled: %d requests per %d seconds",
+			config.RateLimitRequests,
+			config.RateLimitWindowSeconds,
+		)
+	}
 	{
 		api.GET("/ping", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{

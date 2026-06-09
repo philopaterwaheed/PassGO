@@ -21,6 +21,10 @@ var (
 	SupabaseURL    string
 	SupabaseAPIKey string
 	PublicBaseURL  string
+
+	RateLimitRedisURL      string
+	RateLimitRequests      int
+	RateLimitWindowSeconds int
 )
 
 func init() {
@@ -38,6 +42,9 @@ func init() {
 	SupabaseURL = getEnv("SUPABASE_URL", "")
 	SupabaseAPIKey = getEnv("SUPABASE_API_KEY", "")
 	PublicBaseURL = getEnv("PASSGO_PUBLIC_BASE_URL", "")
+	RateLimitRedisURL = getEnv("UPSTASH_REDIS_URL", getEnv("REDIS_URL", ""))
+	RateLimitRequests = getEnvAsInt("RATE_LIMIT_REQUESTS", 20)
+	RateLimitWindowSeconds = getEnvAsInt("RATE_LIMIT_WINDOW_SECONDS", 60)
 }
 
 func getEnv(key, defaultValue string) string {

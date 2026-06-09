@@ -11,6 +11,7 @@ import (
 
 type SettingsPage struct {
 	DarkMode widget.Bool
+	List     widget.List
 
 	CurrentMasterPasswordInput widget.Editor
 	NewMasterPasswordInput     widget.Editor
@@ -41,6 +42,7 @@ type SettingsAction struct {
 
 func NewSettingsPage() *SettingsPage {
 	return &SettingsPage{
+		List: widget.List{List: layout.List{Axis: layout.Vertical}},
 		CurrentMasterPasswordInput: widget.Editor{
 			SingleLine: true,
 			Submit:     true,
@@ -108,82 +110,84 @@ func (p *SettingsPage) Layout(gtx layout.Context, th *material.Theme, email stri
 	dims := layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(640)))
 		return ui.SurfacePanel(gtx, ui.SurfaceColor, ui.RadiusLarge, layout.UniformInset(unit.Dp(24)), func(gtx layout.Context) layout.Dimensions {
-			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					lbl := material.H6(th, "Account")
-					lbl.Color = th.Palette.ContrastBg
-					return lbl.Layout(gtx)
-				}),
-				layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
-				layout.Rigid(ui.MutedLabel(th, material.Body2(th, "Signed in as: "+email)).Layout),
-				layout.Rigid(layout.Spacer{Height: unit.Dp(20)}.Layout),
-				layout.Rigid(material.Body1(th, "Master password").Layout),
-				layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return ui.PasswordEditor(gtx, th, &p.CurrentMasterPasswordInput, "Current master password", &p.ShowCurrentMasterBtn, &p.ShowCurrentMaster)
-					})
-				}),
-				layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return ui.PasswordEditor(gtx, th, &p.NewMasterPasswordInput, "New master password", &p.ShowNewMasterBtn, &p.ShowNewMaster)
-					})
-				}),
-				layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return ui.PasswordEditor(gtx, th, &p.ConfirmMasterPasswordInput, "Confirm new master password", &p.ShowConfirmMasterBtn, &p.ShowConfirmMaster)
-					})
-				}),
-				layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					if p.ErrorMsg != "" {
-						lbl := material.Body2(th, p.ErrorMsg)
-						lbl.Color = ui.DangerColor
+			return p.List.Layout(gtx, 1, func(gtx layout.Context, _ int) layout.Dimensions {
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						lbl := material.H6(th, "Account")
+						lbl.Color = th.Palette.ContrastBg
 						return lbl.Layout(gtx)
-					}
-					if p.SuccessMsg != "" {
-						lbl := material.Body2(th, p.SuccessMsg)
-						lbl.Color = ui.SuccessColor
+					}),
+					layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
+					layout.Rigid(ui.MutedLabel(th, material.Body2(th, "Signed in as: "+email)).Layout),
+					layout.Rigid(layout.Spacer{Height: unit.Dp(20)}.Layout),
+					layout.Rigid(material.Body1(th, "Master password").Layout),
+					layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return ui.PasswordEditor(gtx, th, &p.CurrentMasterPasswordInput, "Current master password", &p.ShowCurrentMasterBtn, &p.ShowCurrentMaster)
+						})
+					}),
+					layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return ui.PasswordEditor(gtx, th, &p.NewMasterPasswordInput, "New master password", &p.ShowNewMasterBtn, &p.ShowNewMaster)
+						})
+					}),
+					layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return ui.PasswordEditor(gtx, th, &p.ConfirmMasterPasswordInput, "Confirm new master password", &p.ShowConfirmMasterBtn, &p.ShowConfirmMaster)
+						})
+					}),
+					layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						if p.ErrorMsg != "" {
+							lbl := material.Body2(th, p.ErrorMsg)
+							lbl.Color = ui.DangerColor
+							return lbl.Layout(gtx)
+						}
+						if p.SuccessMsg != "" {
+							lbl := material.Body2(th, p.SuccessMsg)
+							lbl.Color = ui.SuccessColor
+							return lbl.Layout(gtx)
+						}
+						return layout.Dimensions{}
+					}),
+					layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						btnText := "Update master password"
+						if p.IsSaving {
+							btnText = "Updating..."
+						}
+						return ui.PrimaryButton(gtx, th, &p.SaveMasterPasswordBtn, btnText)
+					}),
+					layout.Rigid(layout.Spacer{Height: unit.Dp(20)}.Layout),
+					layout.Rigid(material.Body1(th, "Appearance").Layout),
+					layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						prev := p.DarkMode.Value
+						sw := material.Switch(th, &p.DarkMode, "Dark theme")
+						d := sw.Layout(gtx)
+						if darkMode != nil && prev != p.DarkMode.Value {
+							*darkMode = p.DarkMode.Value
+							changed = true
+						}
+						return d
+					}),
+					layout.Rigid(layout.Spacer{Height: unit.Dp(20)}.Layout),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						lbl := material.Body1(th, "Credits")
+						lbl.Color = th.Palette.ContrastBg
 						return lbl.Layout(gtx)
-					}
-					return layout.Dimensions{}
-				}),
-				layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					btnText := "Update master password"
-					if p.IsSaving {
-						btnText = "Updating..."
-					}
-					return ui.PrimaryButton(gtx, th, &p.SaveMasterPasswordBtn, btnText)
-				}),
-				layout.Rigid(layout.Spacer{Height: unit.Dp(20)}.Layout),
-				layout.Rigid(material.Body1(th, "Appearance").Layout),
-				layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					prev := p.DarkMode.Value
-					sw := material.Switch(th, &p.DarkMode, "Dark theme")
-					d := sw.Layout(gtx)
-					if darkMode != nil && prev != p.DarkMode.Value {
-						*darkMode = p.DarkMode.Value
-						changed = true
-					}
-					return d
-				}),
-				layout.Rigid(layout.Spacer{Height: unit.Dp(20)}.Layout),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					lbl := material.Body1(th, "Credits")
-					lbl.Color = th.Palette.ContrastBg
-					return lbl.Layout(gtx)
-				}),
-				layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
-				layout.Rigid(ui.MutedLabel(th, material.Body2(th, "Philopater Waheed | philopaterwaheed9@gmail.com")).Layout),
-				layout.Rigid(layout.Spacer{Height: unit.Dp(6)}.Layout),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return creditLinks(gtx, th, &p.GitHubBtn, &p.LinkedInBtn, &p.PortfolioBtn, &p.CVBtn)
-				}),
-			)
+					}),
+					layout.Rigid(layout.Spacer{Height: unit.Dp(8)}.Layout),
+					layout.Rigid(ui.MutedLabel(th, material.Body2(th, "Philopater Waheed | philopaterwaheed9@gmail.com")).Layout),
+					layout.Rigid(layout.Spacer{Height: unit.Dp(6)}.Layout),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return creditLinks(gtx, th, &p.GitHubBtn, &p.LinkedInBtn, &p.PortfolioBtn, &p.CVBtn)
+					}),
+				)
+			})
 		})
 	})
 

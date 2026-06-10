@@ -29,6 +29,10 @@ func handleSettingsPage(
 	})
 
 	if action.NewMasterPassword != "" || action.CurrentMasterPassword != "" || action.ConfirmMasterPassword != "" {
+		action.UpdateMasterPassword = true
+	}
+
+	if action.UpdateMasterPassword {
 		if page.IsSaving {
 			return false
 		}
@@ -71,6 +75,55 @@ func handleSettingsPage(
 			st.Auth.MasterPassword = newMasterPassword
 			page.ClearMasterPasswordFields()
 			page.SuccessMsg = "Master password updated"
+			page.IsSaving = false
+			invalidate()
+		}()
+
+		return true
+	}
+
+	if action.UpdateAccountPassword {
+		if page.IsSaving {
+			return false
+		}
+		if action.CurrentAccountPassword == "" {
+			page.ErrorMsg = "Current account password is required"
+			page.SuccessMsg = ""
+			invalidate()
+			return true
+		}
+		if len(action.NewAccountPassword) < 8 {
+			page.ErrorMsg = "New account password must be at least 8 characters"
+			page.SuccessMsg = ""
+			invalidate()
+			return true
+		}
+		if action.NewAccountPassword != action.ConfirmAccountPassword {
+			page.ErrorMsg = "New account passwords do not match"
+			page.SuccessMsg = ""
+			invalidate()
+			return true
+		}
+
+		page.IsSaving = true
+		page.ErrorMsg = ""
+		page.SuccessMsg = ""
+		invalidate()
+
+		currentAccountPassword := action.CurrentAccountPassword
+		newAccountPassword := action.NewAccountPassword
+
+		go func() {
+			err := apiClient.UpdateAccountPassword(currentAccountPassword, newAccountPassword)
+			if err != nil {
+				page.ErrorMsg = err.Error()
+				page.IsSaving = false
+				invalidate()
+				return
+			}
+
+			page.ClearAccountPasswordFields()
+			page.SuccessMsg = "Account password updated"
 			page.IsSaving = false
 			invalidate()
 		}()

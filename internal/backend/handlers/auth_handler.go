@@ -490,6 +490,49 @@ func (h *AuthHandler) UpdatePassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
 }
 
+// UpdateAccountPassword updates the signed-in user's login password.
+func (h *AuthHandler) UpdateAccountPassword(c *gin.Context) {
+	emailValue, exists := c.Get("email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	email, ok := emailValue.(string)
+	if !ok || email == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var req models.UpdateAccountPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	authResp, err := h.supabase.SignIn(email, req.CurrentPassword)
+	if err != nil {
+		if errors.Is(err, auth.ErrInvalidCredentials) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid current account password"})
+			return
+		}
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to verify current account password"})
+		return
+	}
+
+	if authResp.AccessToken == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to verify current account password"})
+		return
+	}
+
+	if err := h.supabase.UpdatePassword(authResp.AccessToken, req.NewPassword); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to update account password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Account password updated successfully"})
+}
+
 // RefreshToken handles POST /api/auth/refresh
 // Refreshes an existing JWT token
 func (h *AuthHandler) RefreshToken(c *gin.Context) {

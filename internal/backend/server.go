@@ -85,6 +85,7 @@ func SetupRouter() *gin.Engine {
 
 				// Protected auth routes
 				auth.GET("/me", middleware.AuthMiddleware(), authHandler.GetCurrentUser)
+				auth.PUT("/account-password", middleware.AuthMiddleware(), authHandler.UpdateAccountPassword)
 			}
 		}
 

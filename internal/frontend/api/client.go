@@ -49,6 +49,11 @@ type UpdateMasterPasswordRequest struct {
 	NewMasterPassword     string `json:"new_master_password"`
 }
 
+type UpdateAccountPasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
 // UserResponse represents user data from API
 type UserResponse struct {
 	ID            string    `json:"id"`
@@ -279,6 +284,49 @@ func (c *Client) UpdateMasterPassword(currentMasterPassword, newMasterPassword s
 	}
 
 	req, err := http.NewRequest("PUT", c.BaseURL+"/api/vaults/master-password", bytes.NewBuffer(body))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var errResp ErrorResponse
+		if err := json.Unmarshal(respBody, &errResp); err == nil && errResp.Error != "" {
+			return fmt.Errorf("%s", errResp.Error)
+		}
+		return fmt.Errorf("request failed with status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func (c *Client) UpdateAccountPassword(currentPassword, newPassword string) error {
+	if c.Token == "" {
+		return fmt.Errorf("no authentication token")
+	}
+
+	body, err := json.Marshal(UpdateAccountPasswordRequest{
+		CurrentPassword: currentPassword,
+		NewPassword:     newPassword,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequest("PUT", c.BaseURL+"/api/auth/account-password", bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

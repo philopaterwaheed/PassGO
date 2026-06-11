@@ -26,6 +26,14 @@ The project combines a Gin API, MongoDB persistence, Supabase-backed authenticat
 - Run the frontend against a hosted API or a local backend
 - Build desktop binaries, a web/WASM bundle, Android APKs, and iOS app artifacts
 
+## Showcase Video
+
+<video src="dist/passgo-showcase.mp4" controls width="100%">
+  Your browser does not support embedded videos. Open the showcase video at `dist/passgo-showcase.mp4`.
+</video>
+
+[Watch the PassGO showcase video](dist/passgo-showcase.mp4)
+
 ## Screenshots
 
 <table>

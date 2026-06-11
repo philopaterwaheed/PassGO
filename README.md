@@ -26,6 +26,47 @@ The project combines a Gin API, MongoDB persistence, Supabase-backed authenticat
 - Run the frontend against a hosted API or a local backend
 - Build desktop binaries, a web/WASM bundle, Android APKs, and iOS app artifacts
 
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="screenshots/passgo-desktop-welcome.png" alt="PassGO welcome screen">
+      <br>
+      <strong>Welcome</strong>
+    </td>
+    <td width="50%">
+      <img src="screenshots/passgo-desktop-login.png" alt="PassGO login screen">
+      <br>
+      <strong>Login</strong>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="screenshots/inside-app/03-add-vault-empty.png" alt="Add vault form">
+      <br>
+      <strong>Add vault</strong>
+    </td>
+    <td width="50%">
+      <img src="screenshots/inside-app/07-vault-list-actions.png" alt="Vault list with entry actions">
+      <br>
+      <strong>Vault list and actions</strong>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="screenshots/inside-app/05-vault-detail-masked.png" alt="Vault detail screen with masked password">
+      <br>
+      <strong>Vault detail</strong>
+    </td>
+    <td width="50%">
+      <img src="screenshots/inside-app/09-settings-master-password.png" alt="Settings screen for master password management">
+      <br>
+      <strong>Settings</strong>
+    </td>
+  </tr>
+</table>
+
 ## Tech Stack
 
 | Area | Tools |
